@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using Commander.Content;
+using HarmonyLib;
 using Kingmaker.Blueprints.JsonSystem;
 
 namespace Commander
@@ -13,7 +14,7 @@ namespace Commander
             if (_loaded) { return; }
             _loaded = true;
 
-            // Change blueprints here.
+            DivineSaintArchetype.Create();
         }
     }
 }
