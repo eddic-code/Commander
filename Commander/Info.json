@@ -1,0 +1,10 @@
+﻿{
+  "Id": "Commander",
+  "DisplayName": "Commander",
+  "Author": "Saga",
+  "Version": "1.0.0",
+  "ManagerVersion": "0.24.0.0",
+  "Requirements": [],
+  "AssemblyName": "Commander.dll",
+  "EntryMethod": "Commander.Main.Load"
+}
