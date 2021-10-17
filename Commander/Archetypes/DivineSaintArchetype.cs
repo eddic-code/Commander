@@ -5,6 +5,7 @@ using Commander.Components;
 using HarmonyLib;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
+using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Designers.Mechanics.Facts;
@@ -146,6 +147,28 @@ namespace Commander.Archetypes
                 n.AddComponents(finalRevelationComp, saintMysterySpellsComp);
             });
 
+            // Revelations.
+            var saintMysteryRef = saintMystery.ToReference<BlueprintFeatureReference>();
+
+            // Channel
+            EnableRevelation(saintMysteryRef, "ade57ae9bbe55c142a012c2453b3088c");
+            // Life Link
+            EnableRevelation(saintMysteryRef, "ef97c9bcc1c54ea7993ef8b2489c908a");
+            // Safe Curing
+            EnableRevelation(saintMysteryRef, "3fa75c1a809882a4697db75daf8803e3");
+            // Spirit Boost
+            EnableRevelation(saintMysteryRef, "8cf1bc6fe4d14304392496ff66023271");
+            // War Sight
+            EnableRevelation(saintMysteryRef, "84f5169d964185741b97e95a1f1f2a79");
+            // Weapon Mastery
+            EnableRevelation(saintMysteryRef, "0a4c3556355747241b2d3dcc0a88ec10");
+            // Lifesense
+            EnableRevelation(saintMysteryRef, "17e537c174c7f0f4c9422c5ab5e3c2b8");
+            // Firestorm
+            EnableRevelation(saintMysteryRef, "3fdc528f56566984fbbe0baaef0027a2");
+            // Firestorm
+            EnableRevelation(saintMysteryRef, "973a22b02c793ca49b48652e3d70ae80");
+
             // Saint's Intuition
             var replaceAcComp = Helpers.Create<ReplaceStatBaseAttribute>(n =>
             {
@@ -219,6 +242,23 @@ namespace Commander.Archetypes
 
             oracle.m_Archetypes = oracle.m_Archetypes.AddToArray(archetype.ToReference<BlueprintArchetypeReference>()).ToArray();
             Resources.AddBlueprint(archetype);
+        }
+
+        private static void EnableRevelation(BlueprintFeatureReference mystery, string revelationGuid)
+        {
+            var revelation = Resources.GetBlueprint<BlueprintFeature>(revelationGuid);
+            var prerequisites = revelation.GetComponent<PrerequisiteFeaturesFromList>();
+
+            if (prerequisites == null)
+            {
+                Main.Log($"ERROR: Could not find prerequisites component for {revelationGuid}");
+                return;
+            }
+
+            Main.Log($"{prerequisites} | {prerequisites.m_Features.Length}");
+
+            var list = new List<BlueprintFeatureReference>(prerequisites.m_Features) {mystery};
+            prerequisites.m_Features = list.ToArray();
         }
     }
 }
