@@ -4,7 +4,9 @@ using Commander.Components;
 using HarmonyLib;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
+using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.EntitySystem.Stats;
+using Kingmaker.UnitLogic.FactLogic;
 
 namespace Commander.Archetypes
 {
@@ -12,16 +14,54 @@ namespace Commander.Archetypes
     {
         public static void Create()
         {
-            // Features creation.
-            var saintsPrecenseComp = Helpers.Create<SaintsPresenceComp>();
+            // Saint's Intuition
+            var replaceAcComp = Helpers.Create<ReplaceStatBaseAttribute>(n =>
+            {
+                n.TargetStat = StatType.AC;
+                n.BaseAttributeReplacement = StatType.Charisma;
+            });
 
-            var saintsPresence = Helpers.CreateBlueprint<BlueprintFeature>("SaintsPresenceComp", "daeb002e013f4965a4a690bc4e3876e5", n =>
+            var replacePerceptionComp = Helpers.Create<ReplaceStatBaseAttribute>(n =>
+            {
+                n.TargetStat = StatType.SkillPerception;
+                n.BaseAttributeReplacement = StatType.Charisma;
+            });
+
+            var replaceReligionComp = Helpers.Create<ReplaceStatBaseAttribute>(n =>
+            {
+                n.TargetStat = StatType.SkillLoreReligion;
+                n.BaseAttributeReplacement = StatType.Charisma;
+            });
+
+            var replaceCmdComp = Helpers.Create<ReplaceCMDDexterityStat>(n =>
+            {
+                n.NewStat = StatType.Charisma;
+            });
+
+            var saintsIntuition = Helpers.CreateBlueprint<BlueprintFeature>("SaintsIntuition", "5d4ff3da5da6401aba8a068d1aa11ad3", n =>
+            {
+                n.SetName("Saint's Intuition");
+                n.SetDescription("Use your charisma as a bonus for AC, perception, and religion.");
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.AddComponents(replaceAcComp, replacePerceptionComp, replaceReligionComp, replaceCmdComp);
+            });
+
+            // Saint's Presence
+            var saintsPresenceComp = Helpers.Create<SaintsPresenceComp>();
+
+            var recalculateComp = Helpers.Create<RecalculateOnStatChange>(n =>
+            {
+                n.Stat = StatType.Charisma;
+            });
+
+            var saintsPresence = Helpers.CreateBlueprint<BlueprintFeature>("SaintsPresence", "daeb002e013f4965a4a690bc4e3876e5", n =>
             {
                 n.SetName("Saint's Presence");
                 n.SetDescription("While wearing medium or light armor, the divine saint can add their charisma bonus to their AC.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
-                n.AddComponent(saintsPrecenseComp);
+                n.AddComponents(saintsPresenceComp, recalculateComp);
             });
 
             // Archetype creation.
@@ -37,7 +77,7 @@ namespace Commander.Archetypes
 
             archetype.ReplaceClassSkills = true;
             archetype.ClassSkills = new[] { StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice };
-            archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence) };
+            archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence), Helpers.LevelEntry(1, saintsIntuition) };
 
             oracle.m_Archetypes = oracle.m_Archetypes.AddToArray(archetype.ToReference<BlueprintArchetypeReference>()).ToArray();
             Resources.AddBlueprint(archetype);
