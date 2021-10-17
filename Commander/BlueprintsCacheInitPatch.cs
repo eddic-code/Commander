@@ -1,4 +1,4 @@
-﻿using Commander.Content;
+﻿using Commander.Archetypes;
 using HarmonyLib;
 using Kingmaker.Blueprints.JsonSystem;
 

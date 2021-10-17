@@ -1,40 +1,46 @@
-﻿using Kingmaker.Blueprints;
+﻿// Copyright (c) 2019 Jennifer Messerly
+// This code is licensed under MIT license (see LICENSE for details)
+
+using JetBrains.Annotations;
+using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.ElementsSystem;
+using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
 using Kingmaker.Localization;
 using Kingmaker.ResourceLinks;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Mechanics;
+using Kingmaker.UnitLogic.Mechanics.Components;
+using Kingmaker.UnitLogic.Mechanics.Properties;
 using Kingmaker.Utility;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using Kingmaker.Blueprints.Facts;
-using Kingmaker.UnitLogic.FactLogic;
-using HarmonyLib;
-using Kingmaker.Blueprints.Classes.Selection;
-using Kingmaker.Blueprints.Classes.Prerequisites;
-using Kingmaker.UnitLogic.ActivatableAbilities;
-using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
-namespace Commander
-{
-    internal static class Helpers
-    {
-        const string BasicFeatSelection = "247a4068296e8be42890143f451b4b45";
-
+namespace Commander {
+    public static class Helpers {
         public static T Create<T>(Action<T> init = null) where T : new() {
             var result = new T();
             init?.Invoke(result);
             return result;
         }
 
-        public static BlueprintBuff CreateBuff(Action<BlueprintBuff> init = null) {
-            var result = Helpers.Create<BlueprintBuff>(bp => {
+        public static T CreateBlueprint<T>([NotNull] string name, string guid, Action<T> init = null) where T : SimpleBlueprint, new() {
+            var result = new T {
+                name = name,
+                AssetGuid = new BlueprintGuid(new Guid(guid))
+            };
+            Resources.AddBlueprint(result);
+            init?.Invoke(result);
+            return result;
+        }
+
+        public static BlueprintBuff CreateBuff(string name, string guid, Action<BlueprintBuff> init = null) {
+            var result = Helpers.CreateBlueprint<BlueprintBuff>(name, guid, bp => {
                 bp.FxOnStart = new PrefabLink();
                 bp.FxOnRemove = new PrefabLink();
             });
@@ -42,88 +48,7 @@ namespace Commander
             return result;
         }
 
-        public static BlueprintBuff CreateBuff(String name, String displayName, String description, String guid, UnityEngine.Sprite icon,
-            PrefabLink fxOnStart,
-            params BlueprintComponent[] components)
-        {
-            var buff = Create<BlueprintBuff>();
-            buff.name = name;
-            buff.FxOnStart = fxOnStart ?? new PrefabLink();
-            buff.FxOnRemove = new PrefabLink();
-            buff.SetComponents(components);
-            buff.m_DisplayName = CreateString($"{buff.name}.Name", displayName);
-            buff.m_Description = CreateString($"{buff.name}.Description", description);
-            buff.m_Icon = icon;
-            //Resources.AddAsset(buff, guid);
-            return buff;
-        }
-
-        public static BlueprintActivatableAbility CreateActivatableAbility(String name, String displayName, String description,
-            string assetId, UnityEngine.Sprite icon, BlueprintBuff buff, AbilityActivationType activationType, CommandType commandType,
-            UnityEngine.AnimationClip activateWithUnitAnimation,
-            params BlueprintComponent[] components)
-        {
-            var ability = Create<BlueprintActivatableAbility>();
-            ability.name = name;
-            ability.m_DisplayName = CreateString($"{ability.name}.Name", displayName);
-            ability.m_Description = CreateString($"{ability.name}.Description", description);
-            ability.m_Icon = icon;
-            ability.m_Buff = buff.ToReference<BlueprintBuffReference>();
-            ability.ResourceAssetIds = Array.Empty<string>();
-            ability.ActivationType = activationType;
-            ability.m_ActivateWithUnitCommand = commandType;
-            ability.SetComponents(components);
-            //ability.ActivateWithUnitAnimation = activateWithUnitAnimation;
-            //Main.library.AddAsset(ability, assetId);
-            return ability;
-        }
-
-        public static BlueprintFeature CreateFeature(String name, String displayName, String description, String guid, UnityEngine.Sprite icon,
-            FeatureGroup group, params BlueprintComponent[] components)
-        {
-            var feat = Create<BlueprintFeature>();
-            SetFeatureInfo(feat, name, displayName, description, guid, icon, group, components);
-            return feat;
-        }
-
-        public static void SetFeatureInfo(BlueprintFeature feat, String name, String displayName, String description, String guid, UnityEngine.Sprite icon,
-           FeatureGroup group, params BlueprintComponent[] components)
-        {
-            feat.name = name;
-            feat.SetComponents(components);
-            feat.Groups = new FeatureGroup[] { group };
-            feat.m_DisplayName = CreateString($"{feat.name}.Name", displayName);
-            feat.m_Description = CreateString($"{feat.name}.Description", description);
-            feat.m_Icon = icon;
-            //Main.library.AddAsset(feat, guid);
-        }
-
-        public static int PopulationCount(int i) 
-        {
-            i = i - ((i >> 1) & 0x55555555);
-            i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-            return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-        }
-
-        public static ActivatableAbilityResourceLogic CreateActivatableResourceLogic(this BlueprintAbilityResource resource,
-            ActivatableAbilityResourceLogic.ResourceSpendType spendType)
-        {
-            var logic = Create<ActivatableAbilityResourceLogic>();
-            logic.m_RequiredResource = resource.ToReference<BlueprintAbilityResourceReference>();
-            logic.SpendType = spendType;
-            return logic;
-        }
-
-        public static AddFacts CreateAddFact(this BlueprintUnitFact fact)
-        {
-            var result = Create<AddFacts>();
-            result.name = $"AddFacts${fact.name}";
-            result.m_Facts = new BlueprintUnitFactReference[] { fact.ToReference<BlueprintUnitFactReference>() };
-            return result;
-        }
-
-        public static T CreateCopy<T>(T original, Action<T> init = null)
-        {
+        public static T CreateCopy<T>(T original, Action<T> init = null) {
             var result = (T)ObjectDeepCopier.Clone(original);
             init?.Invoke(result);
             return result;
@@ -138,16 +63,19 @@ namespace Commander
             };
         }
 
-        public static LevelEntry LevelEntry(int level, params BlueprintFeatureBase[] features) {
-            return LevelEntry(level, features);
-        }
-
-        public static LevelEntry LevelEntry(int level, IEnumerable<BlueprintFeatureBase> features) {
+        public static LevelEntry CreateLevelEntry(int level, params BlueprintFeatureBase[] features) {
             LevelEntry levelEntry = new LevelEntry();
             levelEntry.Level = level;
             features.ForEach(f => levelEntry.Features.Add(f));
             return levelEntry;
         }
+
+        public static UIGroup CreateUIGroup(params BlueprintFeatureBase[] features) {
+            UIGroup uiGroup = new UIGroup();
+            features.ForEach(f => uiGroup.Features.Add(f));
+            return uiGroup;
+        }
+
         public static ContextValue CreateContextValueRank(AbilityRankType value = AbilityRankType.Default) => value.CreateContextValue();
         public static ContextValue CreateContextValue(this AbilityRankType value) {
             return new ContextValue() { ValueType = ContextValueType.Rank, ValueRank = value };
@@ -159,24 +87,20 @@ namespace Commander
             if (actions == null || actions.Length == 1 && actions[0] == null) actions = Array.Empty<GameAction>();
             return new ActionList() { Actions = actions };
         }
-#if false
-        public static ContextActionSavingThrow CreateActionSavingThrow(this SavingThrowType savingThrow, params GameAction[] actions) {
-            var c = Create<ContextActionSavingThrow>();
-            c.Type = savingThrow;
-            c.Actions = CreateActionList(actions);
-            return c;
-        }
-        public static ContextActionConditionalSaved CreateConditionalSaved(GameAction[] success, GameAction[] failed) {
-            var c = Create<ContextActionConditionalSaved>();
-            c.Succeed = CreateActionList(success);
-            c.Failed = CreateActionList(failed);
-            return c;
-        }
-#endif
 
         // All localized strings created in this mod, mapped to their localized key. Populated by CreateString.
         static Dictionary<String, LocalizedString> textToLocalizedString = new Dictionary<string, LocalizedString>();
-        static FastRef<LocalizedString, string> localizedString_m_Key = Helpers.CreateFieldSetter<LocalizedString, string>("m_Key");
+
+        public static LocalizedString CreateBlueprintName(string name, string displayName)
+        {
+            return CreateString($"{name}.Name", displayName);
+        }
+
+        public static LocalizedString CreateBlueprintDescription(string name, string description)
+        {
+            return CreateString($"{name}.Description", description);
+        }
+        
         public static LocalizedString CreateString(string key, string value) {
             // See if we used the text previously.
             // (It's common for many features to use the same localized text.
@@ -186,11 +110,16 @@ namespace Commander
                 return localized;
             }
             var strings = LocalizationManager.CurrentPack.Strings;
+            String oldValue;
+            if (strings.TryGetValue(key, out oldValue) && value != oldValue) {
+#if DEBUG
+                Main.LogDebug($"Info: duplicate localized string `{key}`, different text.");
+#endif
+            }
             strings[key] = value;
             localized = new LocalizedString {
-                Key = key
+                m_Key = key
             };
-            //localizedString_m_Key(localized) = key;
             textToLocalizedString[value] = localized;
             return localized;
         }
@@ -205,21 +134,9 @@ namespace Commander
         public static void SetField(object obj, string name, object value) {
             HarmonyLib.AccessTools.Field(obj.GetType(), name).SetValue(obj, value);
         }
-        public static object GetField(object obj, string name)
-        {
-            return AccessTools.Field(obj.GetType(), name).GetValue(obj);
+        public static object GetField(object obj, string name) {
+            return HarmonyLib.AccessTools.Field(obj.GetType(), name).GetValue(obj);
         }
-
-        public static object GetField(Type type, object obj, string name)
-        {
-            return AccessTools.Field(type, name).GetValue(obj);
-        }
-
-        public static T GetField<T>(object obj, string name)
-        {
-            return (T)AccessTools.Field(obj.GetType(), name).GetValue(obj);
-        }
-
         // Parses the lowest 64 bits of the Guid (which corresponds to the last 16 characters).
         static ulong ParseGuidLow(String id) => ulong.Parse(id.Substring(id.Length - 16), NumberStyles.HexNumber);
         // Parses the high 64 bits of the Guid (which corresponds to the first 16 characters).
@@ -238,7 +155,54 @@ namespace Commander
             }
             return high.ToString("x16") + low.ToString("x16");
         }
-       
+#if false
+        public static T CreateCopy<T>(this T original, Action<T> action = null) where T : UnityEngine.Object {
+            var clone = UnityEngine.Object.Instantiate(original);
+            if (action != null) {
+                action(clone);
+            }
+            return clone;
+        }
+#endif
+        public static ContextRankConfig CreateContextRankConfig(
+            ContextRankBaseValueType baseValueType = ContextRankBaseValueType.CasterLevel,
+            ContextRankProgression progression = ContextRankProgression.AsIs,
+            AbilityRankType type = AbilityRankType.Default,
+            int? min = null, int? max = null, int startLevel = 0, int stepLevel = 0,
+            bool exceptClasses = false, StatType stat = StatType.Unknown,
+            BlueprintUnitProperty customProperty = null,
+            BlueprintCharacterClass[] classes = null, BlueprintArchetype[] archetypes = null, BlueprintArchetype archetype = null,
+            BlueprintFeature feature = null, BlueprintFeature[] featureList = null,
+            (int, int)[] customProgression = null) {
+            var config = new ContextRankConfig() {
+                m_Type = type,
+                m_BaseValueType = baseValueType,
+                m_Progression = progression,
+                m_UseMin = min.HasValue,
+                m_Min = min.GetValueOrDefault(),
+                m_UseMax = max.HasValue,
+                m_Max = max.GetValueOrDefault(),
+                m_StartLevel = startLevel,
+                m_StepLevel = stepLevel,
+                m_Feature = feature.ToReference<BlueprintFeatureReference>(),
+                m_ExceptClasses = exceptClasses,
+                m_CustomProperty = customProperty.ToReference<BlueprintUnitPropertyReference>(),
+                m_Stat = stat,
+                m_Class = classes == null ? Array.Empty<BlueprintCharacterClassReference>() : classes.Select(c => c.ToReference<BlueprintCharacterClassReference>()).ToArray(),
+                Archetype = archetype.ToReference<BlueprintArchetypeReference>(),
+                m_AdditionalArchetypes = archetypes == null ? Array.Empty<BlueprintArchetypeReference>() : archetypes.Select(c => c.ToReference<BlueprintArchetypeReference>()).ToArray(),
+                m_FeatureList = featureList == null ? Array.Empty<BlueprintFeatureReference>() : featureList.Select(c => c.ToReference<BlueprintFeatureReference>()).ToArray()
+            };
+
+            return config;
+        }
+
+        public static ContextRankConfig CreateContextRankConfig(Action<ContextRankConfig> init) {
+            var config = CreateContextRankConfig();
+            init?.Invoke(config);
+            return config;
+        }
+
         private class ObjectDeepCopier {
             private class ArrayTraverse {
                 public int[] Position;
@@ -265,12 +229,19 @@ namespace Commander
                     return false;
                 }
             }
-            private class ReferenceEqualityComparer: EqualityComparer<Object> {
+            private class ReferenceEqualityComparer : EqualityComparer<Object> {
                 public override bool Equals(object x, object y) {
                     return ReferenceEquals(x, y);
                 }
                 public override int GetHashCode(object obj) {
                     if (obj == null) return 0;
+                    if (obj is WeakResourceLink wrl) {
+                        if (wrl.AssetId == null) {
+                            return "WeakResourceLink".GetHashCode();
+                        } else {
+                            return wrl.GetHashCode();
+                        }
+                    }
                     return obj.GetHashCode();
                 }
             }
@@ -287,6 +258,7 @@ namespace Commander
                 if (originalObject == null) return null;
                 var typeToReflect = originalObject.GetType();
                 if (IsPrimitive(typeToReflect)) return originalObject;
+                if (originalObject is BlueprintReferenceBase) return originalObject;
                 if (visited.ContainsKey(originalObject)) return visited[originalObject];
                 if (typeof(Delegate).IsAssignableFrom(typeToReflect)) return null;
                 var cloneObject = CloneMethod.Invoke(originalObject, null);
@@ -326,167 +298,7 @@ namespace Commander
                 }
             }
         }
-        public static void AddComponent(this BlueprintScriptableObject obj, BlueprintComponent component)
-        {
-            obj.SetComponents(obj.ComponentsArray.AddToArray(component));
-        }
-
-        public static void RemoveComponent(this BlueprintScriptableObject obj, BlueprintComponent component)
-        {
-            obj.SetComponents(obj.ComponentsArray.RemoveFromArray(component));
-        }
-
-
-        public static void RemoveComponents<T>(this BlueprintScriptableObject obj) where T : BlueprintComponent
-        {
-            var compnents_to_remove = obj.GetComponents<T>().ToArray();
-            foreach (var c in compnents_to_remove)
-            {
-                obj.SetComponents(obj.ComponentsArray.RemoveFromArray(c));
-            }
-        }
-
-
-        public static void RemoveComponents<T>(this BlueprintScriptableObject obj, Predicate<T> predicate) where T : BlueprintComponent
-        {
-            var compnents_to_remove = obj.GetComponents<T>().ToArray();
-            foreach (var c in compnents_to_remove)
-            {
-                if (predicate(c))
-                {
-                    obj.SetComponents(obj.ComponentsArray.RemoveFromArray(c));
-                }
-            }
-        }
-
-        public static void AddComponents(this BlueprintScriptableObject obj, IEnumerable<BlueprintComponent> components) => AddComponents(obj, components.ToArray());
-
-        public static void AddComponents(this BlueprintScriptableObject obj, params BlueprintComponent[] components)
-        {
-            var c = obj.ComponentsArray.ToList();
-            c.AddRange(components);
-            obj.SetComponents(c.ToArray());
-        }
-
-        public static void SetComponents(this BlueprintScriptableObject obj, params BlueprintComponent[] components)
-        {
-            // Fix names of components. Generally this doesn't matter, but if they have serialization state,
-            // then their name needs to be unique.
-            var names = new HashSet<string>();
-            foreach (var c in components)
-            {
-                if (string.IsNullOrEmpty(c.name))
-                {
-                    c.name = $"${c.GetType().Name}";
-                }
-                if (!names.Add(c.name))
-                {
-                    String name;
-                    for (int i = 0; !names.Add(name = $"{c.name}${i}"); i++) ;
-                    c.name = name;
-                }
-            }
-
-            obj.ComponentsArray = components;
-        }
-
-        public static void SetComponents(this BlueprintScriptableObject obj, IEnumerable<BlueprintComponent> components)
-        {
-            SetComponents(obj, components.ToArray());
-        }
-
-        public static T[] RemoveFromArray<T>(this T[] array, T value)
-        {
-            var list = array.ToList();
-            return list.Remove(value) ? list.ToArray() : array;
-        }
-
-        public static void ReplaceComponent<T>(this BlueprintScriptableObject obj, BlueprintComponent replacement) where T : BlueprintComponent
-        {
-            ReplaceComponent(obj, obj.GetComponent<T>(), replacement);
-        }
-
-
-        public static void ReplaceComponent<T>(this BlueprintScriptableObject obj, Action<T> action) where T : BlueprintComponent
-        {
-            var replacement = CreateCopy(obj.GetComponent<T>());
-            action(replacement);
-            ReplaceComponent(obj, obj.GetComponent<T>(), replacement);
-        }
-
-
-        public static void MaybeReplaceComponent<T>(this BlueprintScriptableObject obj, Action<T> action) where T : BlueprintComponent
-        {
-            var replacement = CreateCopy(obj.GetComponent<T>());
-            if (replacement == null)
-            {
-                return;
-            }
-            action(replacement);
-            ReplaceComponent(obj, obj.GetComponent<T>(), replacement);
-        }
-
-
-        public static void ReplaceComponent(this BlueprintScriptableObject obj, BlueprintComponent original, BlueprintComponent replacement)
-        {
-            // Note: make a copy so we don't mutate the original component
-            // (in case it's a clone of a game one).
-            var components = obj.ComponentsArray;
-            var newComponents = new BlueprintComponent[components.Length];
-            for (int i = 0; i < components.Length; i++)
-            {
-                var c = components[i];
-                newComponents[i] = c == original ? replacement : c;
-            }
-            obj.SetComponents(newComponents); // fix up names if needed
-        }
-
-        public static void AddFeats( params BlueprintFeature[] feats)
-        {
-            AddFeats(BasicFeatSelection, feats);
-        }
-
-        public static void AddFeats( String featSelectionId, params BlueprintFeature[] feats)
-        {
-            var featGroup = Resources.GetBlueprint<BlueprintFeatureSelection>(featSelectionId);
-            var allFeats = featGroup.AllFeatures.ToList();
-            allFeats.AddRange(feats);
-            featGroup.SetFeatures(allFeats);
-        }
-
-        public static void SetFeatures(this BlueprintFeatureSelection selection, IEnumerable<BlueprintFeature> features)
-        {
-            SetFeatures(selection, features.ToArray());
-        }
-
-        public static void SetFeatures(this BlueprintFeatureSelection selection, params BlueprintFeature[] features)
-        {
-            foreach (BlueprintFeature f in features)
-            {
-                selection.m_AllFeatures = selection.m_AllFeatures.AddToArray(f.ToReference<BlueprintFeatureReference>());
-            }
-        }
-        public static PrerequisiteNoArchetype prerequisiteNoArchetype(BlueprintCharacterClass character_class, BlueprintArchetype archetype, bool any = false)
-        {
-            var p = Helpers.Create<PrerequisiteNoArchetype>();
-            p.m_Archetype = archetype.ToReference<BlueprintArchetypeReference>();
-            p.m_CharacterClass = character_class.ToReference<BlueprintCharacterClassReference>();
-            p.Group = any ? Prerequisite.GroupType.Any : Prerequisite.GroupType.All;
-            return p;
-        }
-
-
-        public static PrerequisiteNoArchetype prerequisiteNoArchetype(BlueprintArchetype archetype, bool any = false)
-        {
-            var p = Helpers.Create<PrerequisiteNoArchetype>();
-            p.m_Archetype = archetype.ToReference<BlueprintArchetypeReference>();
-            p.m_CharacterClass = archetype.GetParentClass().ToReference<BlueprintCharacterClassReference>();
-            p.Group = any ? Prerequisite.GroupType.Any : Prerequisite.GroupType.All;
-            return p;
-        }
-
     }
-
     public delegate ref S FastRef<T, S>(T source = default);
     public delegate void FastSetter<T, S>(T source, S value);
     public delegate S FastGetter<T, S>(T source);

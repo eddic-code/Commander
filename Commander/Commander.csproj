@@ -103,7 +103,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Content\DivineSaintArchetype.cs" />
+    <Compile Include="Archetypes\DivineSaintArchetype.cs" />
+    <Compile Include="Components\SaintsPresenceComp.cs" />
+    <Compile Include="DescriptionTools.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="BlueprintsCacheInitPatch.cs" />
