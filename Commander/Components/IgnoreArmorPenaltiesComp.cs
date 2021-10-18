@@ -16,6 +16,8 @@ namespace Commander.Components
         {
             base.OnTurnOn();
 
+            Owner.State.Features.ImmunityToMediumArmorSpeedPenalty.Retain();
+
             if (Owner.Body.Armor.HasArmor && Owner.Body.Armor.Armor.Blueprint.IsArmor) 
             {
                 Owner.Body.Armor.Armor.RecalculateStats();
@@ -27,6 +29,13 @@ namespace Commander.Components
                 Owner.Body.SecondaryHand.MaybeShield.ArmorComponent.RecalculateStats();
                 Owner.Body.SecondaryHand.MaybeShield.ArmorComponent.RecalculateMaxDexBonus();
             }
+        }
+
+        public override void OnTurnOff()
+        {
+            base.OnTurnOff();
+
+            Owner.State.Features.ImmunityToMediumArmorSpeedPenalty.Release();
         }
 
         public void OnEventAboutToTrigger(RuleCalculateArmorMaxDexBonusLimit evt)
