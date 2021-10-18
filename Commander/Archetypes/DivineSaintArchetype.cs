@@ -168,6 +168,24 @@ namespace Commander.Archetypes
             EnableRevelation(saintMysteryRef, "3fdc528f56566984fbbe0baaef0027a2");
             // Firestorm
             EnableRevelation(saintMysteryRef, "973a22b02c793ca49b48652e3d70ae80");
+            // BondedMount
+            // Animal Companion Selection Change
+            var bondedRevelation = Resources.GetBlueprint<BlueprintFeatureSelection>("0234d0dd1cead22428e71a2500afa2e1");
+            var prerequisites = bondedRevelation.GetComponent<PrerequisiteFeaturesFromList>();
+
+            if (prerequisites != null)
+            {
+                var list = new List<BlueprintFeatureReference>(prerequisites.m_Features) {saintMysteryRef};
+                prerequisites.m_Features = list.ToArray();
+            }
+
+            var leopard = Resources.GetBlueprint<BlueprintFeature>("2ee2ba60850dd064e8b98bf5c2c946ba").ToReference<BlueprintFeatureReference>();
+            var smilodon = Resources.GetBlueprint<BlueprintFeature>("126712ef923ab204983d6f107629c895").ToReference<BlueprintFeatureReference>();
+            var smilodonPreorder = Resources.GetBlueprint<BlueprintFeature>("44f4d77689434e07a5a44dcb65b25f71").ToReference<BlueprintFeatureReference>();
+            var featureList = new List<BlueprintFeatureReference>(bondedRevelation.m_Features) {leopard, smilodon, smilodonPreorder};
+            bondedRevelation.m_Features = featureList.ToArray();
+            featureList = new List<BlueprintFeatureReference>(bondedRevelation.m_AllFeatures) {leopard, smilodon, smilodonPreorder};
+            bondedRevelation.m_AllFeatures = featureList.ToArray();
 
             // Saint's Intuition
             var replaceAcComp = Helpers.Create<ReplaceStatBaseAttribute>(n =>
@@ -236,6 +254,7 @@ namespace Commander.Archetypes
             });
 
             archetype.ReplaceClassSkills = true;
+            archetype.AddSkillPoints = 1;
             archetype.ClassSkills = new[] { StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice };
             archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence), Helpers.LevelEntry(1, saintsIntuition), Helpers.LevelEntry(1, saintMystery)};
             archetype.RemoveFeatures = new[] { Helpers.LevelEntry(1, mysterySelection)};
@@ -254,8 +273,6 @@ namespace Commander.Archetypes
                 Main.Log($"ERROR: Could not find prerequisites component for {revelationGuid}");
                 return;
             }
-
-            Main.Log($"{prerequisites} | {prerequisites.m_Features.Length}");
 
             var list = new List<BlueprintFeatureReference>(prerequisites.m_Features) {mystery};
             prerequisites.m_Features = list.ToArray();

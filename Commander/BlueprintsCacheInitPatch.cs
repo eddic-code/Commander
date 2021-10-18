@@ -1,4 +1,5 @@
 ﻿using Commander.Archetypes;
+using Commander.Feats;
 using HarmonyLib;
 using Kingmaker.Blueprints.JsonSystem;
 
@@ -15,6 +16,7 @@ namespace Commander
             _loaded = true;
 
             DivineSaintArchetype.Create();
+            ExtraRevelation.Create();
         }
     }
 }

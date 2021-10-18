@@ -108,6 +108,8 @@
     <Compile Include="Components\SaintsPresenceComp.cs" />
     <Compile Include="DescriptionTools.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="Feats\ExtraRevelation.cs" />
+    <Compile Include="FeatTools.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="BlueprintsCacheInitPatch.cs" />
