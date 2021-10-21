@@ -13,7 +13,7 @@ namespace Commander.Utility
         {
             internal static void Postfix(ref int __result) 
             {
-                __result = Mathf.RoundToInt(__result * 4);
+                __result = Mathf.RoundToInt(__result * 6);
             }
         }
     }
