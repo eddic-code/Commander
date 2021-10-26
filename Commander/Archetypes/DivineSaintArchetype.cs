@@ -9,9 +9,23 @@ using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Designers.Mechanics.Facts;
+using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Stats;
+using Kingmaker.Enums;
+using Kingmaker.Localization;
+using Kingmaker.RuleSystem;
+using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
+using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.UnitLogic.Abilities.Components.Base;
+using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.UnitLogic.Buffs.Components;
+using Kingmaker.UnitLogic.Commands.Base;
 using Kingmaker.UnitLogic.FactLogic;
+using Kingmaker.UnitLogic.Mechanics;
+using Kingmaker.UnitLogic.Mechanics.Actions;
+using Kingmaker.UnitLogic.Mechanics.Components;
+using Kingmaker.Visual.Animation.Kingmaker.Actions;
 
 namespace Commander.Archetypes
 {
@@ -22,6 +36,7 @@ namespace Commander.Archetypes
             var oracle = Resources.GetBlueprint<BlueprintCharacterClass>("20ce9bf8af32bee4c8557a045ab499b1");
             var lifeFinalRevelation = Resources.GetBlueprint<BlueprintFeature>("ee23b52c6a06c0b48a09a7a23071aa52");
             var mysterySelection = Resources.GetBlueprint<BlueprintFeatureSelection>("5531b975dcdf0e24c98f1ff7e017e741");
+            var oracleCurseSelection = Resources.GetBlueprint<BlueprintFeatureSelection>("b0a5118b4fb793241bc7042464b23fab");
 
             // Saint Mystery
             // 1 - Remove Sickness
@@ -160,8 +175,6 @@ namespace Commander.Archetypes
             EnableRevelation(saintMysteryRef, "8cf1bc6fe4d14304392496ff66023271");
             // War Sight
             EnableRevelation(saintMysteryRef, "84f5169d964185741b97e95a1f1f2a79");
-            // Weapon Mastery
-            EnableRevelation(saintMysteryRef, "0a4c3556355747241b2d3dcc0a88ec10");
             // Lifesense
             EnableRevelation(saintMysteryRef, "17e537c174c7f0f4c9422c5ab5e3c2b8");
             // Firestorm
@@ -253,14 +266,208 @@ namespace Commander.Archetypes
                 a.LocalizedDescription = Helpers.CreateBlueprintDescription(a.name, "A divine saint is an oracle who dedicates themselves to the protection of others. Their saintly charisma intimidates their enemies.");
             });
 
+            var saintsJudgement = CreateSaintsJudgement();
+            var saintsCure = CreateCure();
+             
             archetype.ReplaceClassSkills = true;
             archetype.AddSkillPoints = 1;
             archetype.ClassSkills = new[] { StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice };
-            archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence), Helpers.LevelEntry(1, saintsIntuition), Helpers.LevelEntry(1, saintMystery)};
-            archetype.RemoveFeatures = new[] { Helpers.LevelEntry(1, mysterySelection)};
+            archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence), Helpers.LevelEntry(1, saintsIntuition), Helpers.LevelEntry(1, saintMystery), Helpers.LevelEntry(2, saintsJudgement), Helpers.LevelEntry(2, saintsCure)};
+            archetype.RemoveFeatures = new[] { Helpers.LevelEntry(1, mysterySelection), Helpers.LevelEntry(1, oracleCurseSelection)};
 
             oracle.m_Archetypes = oracle.m_Archetypes.AddToArray(archetype.ToReference<BlueprintArchetypeReference>()).ToArray();
             Resources.AddBlueprint(archetype);
+        }
+
+        private static BlueprintFeature CreateSaintsJudgement()
+        {
+            var smiteEvil = Resources.GetBlueprint<BlueprintAbility>("7bb9eb2042e67bf489ccd1374423cdec");
+            var smiteEvilBuff = Resources.GetBlueprint<BlueprintBuff>("b6570b8cbb32eaf4ca8255d0ec3310b0");
+            var divineGuardianHarmsWay = Resources.GetBlueprint<BlueprintFeature>("06492b82ad14dfa48bfb12d763840665");
+
+            var saintsJudgementSelfBuff = Helpers.CreateBuff("SaintsJudgementSelfBuff", "b03a143e15f2483287c099f1a3264262", n =>
+            {
+                n.SetName("Saint's Judgement");
+                n.SetDescription("You're the target of enemies who received saintly judgement.");
+                n.m_Flags = BlueprintBuff.Flags.HiddenInUi | BlueprintBuff.Flags.StayOnDeath;
+                n.Stacking = StackingType.Replace;
+                n.Components = new BlueprintComponent[] { Helpers.Create<UniqueBuff>() };
+            });
+
+            var saintsJudgementEnemyBuff = Helpers.CreateBuff("SaintsJudgementEnemyBuff", "32f5d6a4fc024eb19e6b0b0b89d8ce16", n =>
+            {
+                n.SetName("Saint's Judgement");
+                n.SetDescription("The enemy is focusing on you.");
+                n.Stacking = StackingType.Replace;
+                n.FxOnStart = smiteEvilBuff.FxOnStart;
+                n.Components = new BlueprintComponent[] { Helpers.Create<PriorityTarget>(c => c.PriorityFact = saintsJudgementSelfBuff.ToReference<BlueprintUnitFactReference>()), Helpers.Create<RemoveBuffIfCasterIsMissing>() };
+            });
+
+            var applyEnemyBuffComp = Helpers.Create<ContextActionApplyBuff>(n =>
+            {
+                n.m_Buff = saintsJudgementEnemyBuff.ToReference<BlueprintBuffReference>();
+                n.Permanent = true;
+                n.AsChild = true;
+            });
+
+            var applySelfBuffComp = Helpers.Create<ContextActionApplyBuff>(n =>
+            {
+                n.m_Buff = saintsJudgementSelfBuff.ToReference<BlueprintBuffReference>();
+                n.Permanent = true;
+                n.AsChild = true;
+                n.ToCaster = true;
+            });
+
+            var runActionComp = Helpers.Create<AbilityEffectRunAction>(n =>
+            {
+                n.SavingThrowType = SavingThrowType.Unknown;
+                n.Actions = new ActionList { Actions = new GameAction[] { applyEnemyBuffComp, applySelfBuffComp } };
+            });
+
+            var fx = Helpers.Create<AbilitySpawnFx>(n =>
+            {
+                n.PrefabLink = smiteEvil.GetComponent<AbilitySpawnFx>()?.PrefabLink;
+                n.Anchor = AbilitySpawnFxAnchor.SelectedTarget;
+                n.PositionAnchor = AbilitySpawnFxAnchor.None;
+                n.OrientationAnchor = AbilitySpawnFxAnchor.None;
+            });
+
+            var saintsJudgementAbility = Helpers.CreateBlueprint<BlueprintAbility>("SaintsJudgementAbility", "efe17d7cbcbe4387bbc84b83faa689a8", n =>
+            {
+                n.SetName("Saint's Judgement");
+                n.SetDescription("Makes an enemy prioritize you as their target.");
+                n.LocalizedSavingThrow = new LocalizedString();
+                n.LocalizedDuration = new LocalizedString();
+                n.Type = AbilityType.Extraordinary;
+                n.m_Icon = divineGuardianHarmsWay.m_Icon;
+                n.ActionType = UnitCommand.CommandType.Free;
+                n.Range = AbilityRange.Long;
+                n.CanTargetEnemies = true;
+                n.EffectOnEnemy = AbilityEffectOnUnit.Harmful;
+                n.Animation = UnitAnimationActionCastSpell.CastAnimationStyle.Immediate;
+                n.MaterialComponent = new BlueprintAbility.MaterialComponentData { Count = 1 };
+                n.Components = new BlueprintComponent[] { runActionComp, fx };
+            });
+
+            var saintsJudgementComp = Helpers.Create<AddFacts>(n =>
+            {
+                n.m_Facts = new[] { saintsJudgementAbility.ToReference<BlueprintUnitFactReference>() };
+            });
+
+            var saintsJudgement = Helpers.CreateBlueprint<BlueprintFeature>("SaintsJudgement", "614e584b6a53403c88f4561b05e5a5dd", n =>
+            {
+                n.SetName("Saint's Judgement");
+                n.SetDescription("Makes an enemy prioritize you as their target.");
+                n.IsClassFeature = true;
+                n.m_Icon = divineGuardianHarmsWay.m_Icon;
+                n.Ranks = 1;
+                n.ReapplyOnLevelUp = true;
+                n.AddComponents(saintsJudgementComp);
+            });
+
+            return saintsJudgement;
+        }
+
+        private static BlueprintFeature CreateCure()
+        {
+            // Resource
+            var resource = Helpers.CreateBlueprint<BlueprintAbilityResource>("DivineSaintResource", "4f087da382e148d6a5e09e798ccabd54", n =>
+            {
+                n.m_MaxAmount = new BlueprintAbilityResource.Amount
+                {
+                    IncreasedByStat = true,
+                    ResourceBonusStat = StatType.Charisma,
+                    BaseValue = 4
+                };
+
+                n.m_Max = 30;
+                n.LocalizedName = new LocalizedString();
+                n.LocalizedDescription = new LocalizedString();
+            });
+
+            var resouceComp = Helpers.Create<AddAbilityResources>(n =>
+            {
+                n.m_Resource = resource.ToReference<BlueprintAbilityResourceReference>();
+                n.RestoreAmount = true;
+            });
+
+            // Ability
+            var cureLightWounds = Resources.GetBlueprint<BlueprintAbility>("47808d23c67033d4bbab86a1070fd62f");
+            var cleanserOfEvil = Resources.GetBlueprint<BlueprintAbility>("869a6fcb9f304d34e97fe97b222d3d36");
+
+            var spawnFx = Helpers.Create<AbilitySpawnFx>(n =>
+            {
+                n.PrefabLink = cureLightWounds.GetComponent<AbilitySpawnFx>()?.PrefabLink;
+                n.Anchor = AbilitySpawnFxAnchor.SelectedTarget;
+                n.DestroyOnCast = true;
+                n.PositionAnchor = AbilitySpawnFxAnchor.None;
+                n.OrientationAnchor = AbilitySpawnFxAnchor.None;
+            });
+
+            var resourceLogicComp = Helpers.Create<AbilityResourceLogic>(n =>
+            {
+                n.m_RequiredResource = resource.ToReference<BlueprintAbilityResourceReference>();
+                n.m_IsSpendResource = true;
+                n.Amount = 1;
+            });
+
+            var healValue = new ContextDiceValue
+            {
+                DiceCountValue = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.DamageDice}, 
+                DiceType = DiceType.D8,
+                BonusValue = new ContextValue {ValueType = ContextValueType.Rank}
+            };
+
+            var oracle = Resources.GetBlueprint<BlueprintCharacterClass>("20ce9bf8af32bee4c8557a045ab499b1");
+
+            var contextRankConfig = Helpers.Create<ContextRankConfig>(n =>
+            {
+                n.m_Progression = ContextRankProgression.OnePlusDiv2;
+                n.m_BaseValueType = ContextRankBaseValueType.ClassLevel;
+                n.m_Type = AbilityRankType.DamageDice;
+                n.m_Class = new[]{oracle.ToReference<BlueprintCharacterClassReference>()};
+            });
+
+            var healAction = Helpers.Create<ContextActionHealTarget>(n =>
+            {
+                n.Value = healValue;
+            });
+
+            var abilityEffectComp = Helpers.Create<AbilityEffectRunAction>(n =>
+            {
+                n.AddAction(healAction);
+            });
+
+            var cureAbility = Helpers.CreateBlueprint<BlueprintAbility>("SaintsCureAbility", "0c15d594bd19418f92e8a2804031b557", n =>
+            {
+                n.SetName("Cure");
+                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level/2){/g}{g|Encyclopedia:Dice}d8{/g} points of {g|Encyclopedia:Damage}damage{/g} + 1 point per {g|Encyclopedia:Class_Level}class level{/g}.");
+                n.CanTargetFriends = true;
+                n.CanTargetSelf = true;
+                n.Range = AbilityRange.Medium;
+                n.Animation = UnitAnimationActionCastSpell.CastAnimationStyle.Touch;
+                n.ActionType = UnitCommand.CommandType.Swift;
+                n.AvailableMetamagic = Metamagic.CompletelyNormal | Metamagic.Maximize;
+                n.LocalizedDuration = new LocalizedString();
+                n.LocalizedSavingThrow = new LocalizedString();
+                n.m_DescriptionShort = new LocalizedString();
+                n.m_Icon = cleanserOfEvil.m_Icon;
+                n.AddComponents(spawnFx, resourceLogicComp, abilityEffectComp, contextRankConfig);
+            });
+
+            var abilityComp = Helpers.Create<AddFacts>(n => n.m_Facts = new[] {cureAbility.ToReference<BlueprintUnitFactReference>()});
+
+            var saintsCure = Helpers.CreateBlueprint<BlueprintFeature>("SaintsCureFeature", "90ce1d39fc1c45dd8b6d5e6cc026f344", n =>
+            {
+                n.SetName("Cure");
+                n.SetDescription("Heals the target for (caster level/2)d10 + caster level damage.");
+                n.IsClassFeature = true;
+                n.m_Icon = cleanserOfEvil.m_Icon;
+                n.Ranks = 1;
+                n.AddComponents(abilityComp, resouceComp);
+            });
+
+            return saintsCure;
         }
 
         private static void EnableRevelation(BlueprintFeatureReference mystery, string revelationGuid)
