@@ -7,6 +7,7 @@ using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
+using Kingmaker.Blueprints.Facts;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.ElementsSystem;
@@ -17,7 +18,9 @@ using Kingmaker.RuleSystem;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.UnitLogic.Abilities.Components.AreaEffects;
 using Kingmaker.UnitLogic.Abilities.Components.Base;
+using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Buffs.Components;
 using Kingmaker.UnitLogic.Commands.Base;
@@ -25,6 +28,8 @@ using Kingmaker.UnitLogic.FactLogic;
 using Kingmaker.UnitLogic.Mechanics;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
+using Kingmaker.UnitLogic.Mechanics.Conditions;
+using Kingmaker.Utility;
 using Kingmaker.Visual.Animation.Kingmaker.Actions;
 
 namespace Commander.Archetypes
@@ -37,10 +42,11 @@ namespace Commander.Archetypes
             var lifeFinalRevelation = Resources.GetBlueprint<BlueprintFeature>("ee23b52c6a06c0b48a09a7a23071aa52");
             var mysterySelection = Resources.GetBlueprint<BlueprintFeatureSelection>("5531b975dcdf0e24c98f1ff7e017e741");
             var oracleCurseSelection = Resources.GetBlueprint<BlueprintFeatureSelection>("b0a5118b4fb793241bc7042464b23fab");
+            var oracleAdditionalSpellsSelection = Resources.GetBlueprint<BlueprintFeatureSelection>("2cd080fc181122c4a9c5a705abe8ad47");
 
             // Saint Mystery
             // 1 - Remove Sickness
-            var removeSickness = Resources.GetBlueprint<BlueprintAbility>("f6f95242abdfac346befd6f4f6222140").ToReference<BlueprintAbilityReference>();
+            var removeFear = Resources.GetBlueprint<BlueprintAbility>("55a037e514c0ee14a8e3ed14b47061de").ToReference<BlueprintAbilityReference>();
             var barkskin = Resources.GetBlueprint<BlueprintAbility>("5b77d7cc65b8ab74688e74a37fc2f553").ToReference<BlueprintAbilityReference>();
             var heroism = Resources.GetBlueprint<BlueprintAbility>("5ab0d42fb68c9e34abae4921822b9d63").ToReference<BlueprintAbilityReference>();
             var restoration = Resources.GetBlueprint<BlueprintAbility>("f2115ac1148256b4ba20788f7e966830").ToReference<BlueprintAbilityReference>();
@@ -54,7 +60,7 @@ namespace Commander.Archetypes
             {
                 n.SpellLevel = 1;
                 n.m_CharacterClass = oracle.ToReference<BlueprintCharacterClassReference>();
-                n.m_Spell = removeSickness;
+                n.m_Spell = removeFear;
             });
 
             // 2 - Barkskin
@@ -125,7 +131,7 @@ namespace Commander.Archetypes
             {
                 n.m_Spells = new[]
                 {
-                    removeSickness, barkskin, heroism, restoration, breadthOfLife, heal, restorationGreater, healMass,
+                    removeFear, barkskin, heroism, restoration, breadthOfLife, heal, restorationGreater, healMass,
                     heroicInvocation
                 };
             });
@@ -266,112 +272,23 @@ namespace Commander.Archetypes
                 a.LocalizedDescription = Helpers.CreateBlueprintDescription(a.name, "A divine saint is an oracle who dedicates themselves to the protection of others. Their saintly charisma intimidates their enemies.");
             });
 
-            var saintsJudgement = CreateSaintsJudgement();
-            var saintsCure = CreateCure();
+            var saintsCure = CreateEnlight();
+            var oathOfSacrifice = CreateOathOfSacrifice();
              
             archetype.ReplaceClassSkills = true;
             archetype.AddSkillPoints = 1;
             archetype.ClassSkills = new[] { StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice };
-            archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence), Helpers.LevelEntry(1, saintsIntuition), Helpers.LevelEntry(1, saintMystery), Helpers.LevelEntry(2, saintsJudgement), Helpers.LevelEntry(2, saintsCure)};
-            archetype.RemoveFeatures = new[] { Helpers.LevelEntry(1, mysterySelection), Helpers.LevelEntry(1, oracleCurseSelection)};
+            archetype.AddFeatures = new[] { Helpers.LevelEntry(1, saintsPresence), Helpers.LevelEntry(1, saintsIntuition), Helpers.LevelEntry(1, saintMystery), Helpers.LevelEntry(2, saintsCure), Helpers.LevelEntry(1, oathOfSacrifice)};
+            archetype.RemoveFeatures = new[] { Helpers.LevelEntry(1, mysterySelection), Helpers.LevelEntry(1, oracleCurseSelection), Helpers.LevelEntry(1, oracleAdditionalSpellsSelection)};
 
             oracle.m_Archetypes = oracle.m_Archetypes.AddToArray(archetype.ToReference<BlueprintArchetypeReference>()).ToArray();
             Resources.AddBlueprint(archetype);
         }
 
-        private static BlueprintFeature CreateSaintsJudgement()
-        {
-            var smiteEvil = Resources.GetBlueprint<BlueprintAbility>("7bb9eb2042e67bf489ccd1374423cdec");
-            var smiteEvilBuff = Resources.GetBlueprint<BlueprintBuff>("b6570b8cbb32eaf4ca8255d0ec3310b0");
-            var divineGuardianHarmsWay = Resources.GetBlueprint<BlueprintFeature>("06492b82ad14dfa48bfb12d763840665");
-
-            var saintsJudgementSelfBuff = Helpers.CreateBuff("SaintsJudgementSelfBuff", "b03a143e15f2483287c099f1a3264262", n =>
-            {
-                n.SetName("Saint's Judgement");
-                n.SetDescription("You're the target of enemies who received saintly judgement.");
-                n.m_Flags = BlueprintBuff.Flags.HiddenInUi | BlueprintBuff.Flags.StayOnDeath;
-                n.Stacking = StackingType.Replace;
-                n.Components = new BlueprintComponent[] { Helpers.Create<UniqueBuff>() };
-            });
-
-            var saintsJudgementEnemyBuff = Helpers.CreateBuff("SaintsJudgementEnemyBuff", "32f5d6a4fc024eb19e6b0b0b89d8ce16", n =>
-            {
-                n.SetName("Saint's Judgement");
-                n.SetDescription("The enemy is focusing on you.");
-                n.Stacking = StackingType.Replace;
-                n.FxOnStart = smiteEvilBuff.FxOnStart;
-                n.Components = new BlueprintComponent[] { Helpers.Create<PriorityTarget>(c => c.PriorityFact = saintsJudgementSelfBuff.ToReference<BlueprintUnitFactReference>()), Helpers.Create<RemoveBuffIfCasterIsMissing>() };
-            });
-
-            var applyEnemyBuffComp = Helpers.Create<ContextActionApplyBuff>(n =>
-            {
-                n.m_Buff = saintsJudgementEnemyBuff.ToReference<BlueprintBuffReference>();
-                n.Permanent = true;
-                n.AsChild = true;
-            });
-
-            var applySelfBuffComp = Helpers.Create<ContextActionApplyBuff>(n =>
-            {
-                n.m_Buff = saintsJudgementSelfBuff.ToReference<BlueprintBuffReference>();
-                n.Permanent = true;
-                n.AsChild = true;
-                n.ToCaster = true;
-            });
-
-            var runActionComp = Helpers.Create<AbilityEffectRunAction>(n =>
-            {
-                n.SavingThrowType = SavingThrowType.Unknown;
-                n.Actions = new ActionList { Actions = new GameAction[] { applyEnemyBuffComp, applySelfBuffComp } };
-            });
-
-            var fx = Helpers.Create<AbilitySpawnFx>(n =>
-            {
-                n.PrefabLink = smiteEvil.GetComponent<AbilitySpawnFx>()?.PrefabLink;
-                n.Anchor = AbilitySpawnFxAnchor.SelectedTarget;
-                n.PositionAnchor = AbilitySpawnFxAnchor.None;
-                n.OrientationAnchor = AbilitySpawnFxAnchor.None;
-            });
-
-            var saintsJudgementAbility = Helpers.CreateBlueprint<BlueprintAbility>("SaintsJudgementAbility", "efe17d7cbcbe4387bbc84b83faa689a8", n =>
-            {
-                n.SetName("Saint's Judgement");
-                n.SetDescription("Makes an enemy prioritize you as their target.");
-                n.LocalizedSavingThrow = new LocalizedString();
-                n.LocalizedDuration = new LocalizedString();
-                n.Type = AbilityType.Extraordinary;
-                n.m_Icon = divineGuardianHarmsWay.m_Icon;
-                n.ActionType = UnitCommand.CommandType.Free;
-                n.Range = AbilityRange.Long;
-                n.CanTargetEnemies = true;
-                n.EffectOnEnemy = AbilityEffectOnUnit.Harmful;
-                n.Animation = UnitAnimationActionCastSpell.CastAnimationStyle.Immediate;
-                n.MaterialComponent = new BlueprintAbility.MaterialComponentData { Count = 1 };
-                n.Components = new BlueprintComponent[] { runActionComp, fx };
-            });
-
-            var saintsJudgementComp = Helpers.Create<AddFacts>(n =>
-            {
-                n.m_Facts = new[] { saintsJudgementAbility.ToReference<BlueprintUnitFactReference>() };
-            });
-
-            var saintsJudgement = Helpers.CreateBlueprint<BlueprintFeature>("SaintsJudgement", "614e584b6a53403c88f4561b05e5a5dd", n =>
-            {
-                n.SetName("Saint's Judgement");
-                n.SetDescription("Makes an enemy prioritize you as their target.");
-                n.IsClassFeature = true;
-                n.m_Icon = divineGuardianHarmsWay.m_Icon;
-                n.Ranks = 1;
-                n.ReapplyOnLevelUp = true;
-                n.AddComponents(saintsJudgementComp);
-            });
-
-            return saintsJudgement;
-        }
-
-        private static BlueprintFeature CreateCure()
+        private static BlueprintFeature CreateEnlight()
         {
             // Resource
-            var resource = Helpers.CreateBlueprint<BlueprintAbilityResource>("DivineSaintResource", "4f087da382e148d6a5e09e798ccabd54", n =>
+            var resource = Helpers.CreateBlueprint<BlueprintAbilityResource>("DivineSaintEnlightResource", "4f087da382e148d6a5e09e798ccabd54", n =>
             {
                 n.m_MaxAmount = new BlueprintAbilityResource.Amount
                 {
@@ -393,7 +310,7 @@ namespace Commander.Archetypes
 
             // Ability
             var cureLightWounds = Resources.GetBlueprint<BlueprintAbility>("47808d23c67033d4bbab86a1070fd62f");
-            var cleanserOfEvil = Resources.GetBlueprint<BlueprintAbility>("25a89a7bc31e5ee4e820d89d875b6a1c");
+            var icon = Resources.GetBlueprint<BlueprintFeature>("01182bcee8cb41640b7fa1b1ad772421").m_Icon;
 
             var spawnFx = Helpers.Create<AbilitySpawnFx>(n =>
             {
@@ -438,10 +355,10 @@ namespace Commander.Archetypes
                 n.AddAction(healAction);
             });
 
-            var cureAbility = Helpers.CreateBlueprint<BlueprintAbility>("SaintsCureAbility", "0c15d594bd19418f92e8a2804031b557", n =>
+            var cureAbility = Helpers.CreateBlueprint<BlueprintAbility>("DivineSaintEnlightAbility", "0c15d594bd19418f92e8a2804031b557", n =>
             {
-                n.SetName("Cure");
-                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level/2){/g}{g|Encyclopedia:Dice}d8{/g} points of {g|Encyclopedia:Damage}damage{/g} + 1 point per {g|Encyclopedia:Class_Level}class level{/g}.");
+                n.SetName("Enlight");
+                n.SetDescription("You bestow miraculous light to the target that cures ({g|Encyclopedia:Class_Level}class level{/g}/2 + 1){g|Encyclopedia:Dice}d8{/g} points of {g|Encyclopedia:Damage}damage{/g} + 1 point per {g|Encyclopedia:Class_Level}class level{/g}.");
                 n.CanTargetFriends = true;
                 n.CanTargetSelf = true;
                 n.Range = AbilityRange.Medium;
@@ -451,23 +368,94 @@ namespace Commander.Archetypes
                 n.LocalizedDuration = new LocalizedString();
                 n.LocalizedSavingThrow = new LocalizedString();
                 n.m_DescriptionShort = new LocalizedString();
-                n.m_Icon = cleanserOfEvil.m_Icon;
+                n.m_Icon = icon;
                 n.AddComponents(spawnFx, resourceLogicComp, abilityEffectComp, contextRankConfig);
             });
 
             var abilityComp = Helpers.Create<AddFacts>(n => n.m_Facts = new[] {cureAbility.ToReference<BlueprintUnitFactReference>()});
 
-            var saintsCure = Helpers.CreateBlueprint<BlueprintFeature>("SaintsCureFeature", "90ce1d39fc1c45dd8b6d5e6cc026f344", n =>
+            var saintsCure = Helpers.CreateBlueprint<BlueprintFeature>("DivineSaintEnlightFeature", "90ce1d39fc1c45dd8b6d5e6cc026f344", n =>
             {
-                n.SetName("Cure");
-                n.SetDescription("Heals the target for (caster level/2)d10 + caster level damage.");
+                n.SetName("Enlight");
+                n.SetDescription("You bestow miraculous light to the target that cures ({g|Encyclopedia:Class_Level}class level{/g}/2 + 1){g|Encyclopedia:Dice}d8{/g} points of {g|Encyclopedia:Damage}damage{/g} + 1 point per {g|Encyclopedia:Class_Level}class level{/g}.");
                 n.IsClassFeature = true;
-                n.m_Icon = cleanserOfEvil.m_Icon;
+                n.m_Icon = icon;
                 n.Ranks = 1;
                 n.AddComponents(abilityComp, resouceComp);
             });
 
             return saintsCure;
+        }
+
+        private static BlueprintFeature CreateOathOfSacrifice()
+        {
+            var icon = Resources.GetBlueprint<BlueprintFeature>("6bd4a71232014254e80726f3a3756962").m_Icon;
+            var areaFx = Resources.GetBlueprint<BlueprintAbilityAreaEffect>("1be964f750eea8748a76e92744746efb").Fx;
+            var debuffStartFx = Resources.GetBlueprint<BlueprintBuff>("b6570b8cbb32eaf4ca8255d0ec3310b0").FxOnStart;
+
+            var debuff = Helpers.CreateBuff("OathOfSacrificeDebuff", "b6d154805fed4771b8c4c7f027ec742a", n =>
+            {
+                n.SetName("Oath of Sacrifice");
+                n.SetDescription("This target is compelled to attack the divine saint.");
+                n.m_Flags = BlueprintBuff.Flags.Harmful;
+                n.Stacking = StackingType.Replace;
+                n.FxOnStart = debuffStartFx;
+            });
+
+            var debuffAreaEffect = Helpers.Create<AbilityAreaEffectBuff>(n =>
+            {
+                n.m_Buff = debuff.ToReference<BlueprintBuffReference>();
+                n.Condition = new ConditionsChecker {Conditions = new Condition[] {new ContextConditionIsEnemy()}};
+            });
+
+            var debuffArea = Helpers.CreateBlueprint<BlueprintAbilityAreaEffect>("OathOfSacrificeDebuffArea", "0603057c29db4cb3bee9fd8081f48e72", n =>
+            {
+                n.AffectEnemies = true;
+                n.AggroEnemies = false;
+                n.Shape = AreaEffectShape.Cylinder;
+                n.Size = new Feet(30);
+                n.Fx = areaFx;
+                n.AddComponents(debuffAreaEffect);
+            });
+
+            var buff = Helpers.CreateBuff("OathOfSacrificeBuff", "996ad375ab424020b588dd005b248a69", n =>
+            {
+                n.SetName("Oath of Sacrifice");
+                n.SetDescription("Enemies within 20 feet are compelled to attack this target instead of others.");
+                n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
+                n.m_Icon = icon;
+                n.AddComponents(Helpers.Create<AddAreaEffect>(c => c.m_AreaEffect = debuffArea.ToReference<BlueprintAbilityAreaEffectReference>()));
+            });
+
+            var priorityTargetComp = Helpers.Create<PriorityTarget>(c =>
+                c.PriorityFact = buff.ToReference<BlueprintUnitFactReference>());
+
+            debuff.AddComponent(priorityTargetComp);
+
+            var ability = Helpers.CreateBlueprint<BlueprintActivatableAbility>("OathOfSacrificeAbility", "2307580c4d0b40bdab600df34fb2833a", n =>
+            {
+                n.SetName("Oath of Sacrifice");
+                n.SetDescription("Enemies within 20 feet of the saint become compelled to attack her instead of her allies.");
+                n.DeactivateIfCombatEnded = false;
+                n.DeactivateIfOwnerDisabled = false;
+                n.DeactivateIfOwnerUnconscious = false;
+                n.ActivationType = AbilityActivationType.Immediately;
+                n.m_ActivateWithUnitCommand = UnitCommand.CommandType.Free;
+                n.m_Icon = icon;
+                n.m_Buff = buff.ToReference<BlueprintBuffReference>();
+            });
+
+            var abilityFeature = Helpers.CreateBlueprint<BlueprintFeature>("OathOfSacrifice", "40ceba7923fc4b73af0e7228b977bc66", n =>
+            {
+                n.SetName("Oath of Sacrifice");
+                n.SetDescription("Enemies within 20 feet of the saint become compelled to attack her instead of her allies.");
+                n.IsClassFeature = true;
+                n.m_Icon = icon;
+                n.Ranks = 1;
+                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{ability.ToReference<BlueprintUnitFactReference>()}));
+            });
+
+            return abilityFeature;
         }
 
         private static void EnableRevelation(BlueprintFeatureReference mystery, string revelationGuid)
