@@ -393,7 +393,7 @@ namespace Commander.Archetypes
 
             // Ability
             var cureLightWounds = Resources.GetBlueprint<BlueprintAbility>("47808d23c67033d4bbab86a1070fd62f");
-            var cleanserOfEvil = Resources.GetBlueprint<BlueprintAbility>("869a6fcb9f304d34e97fe97b222d3d36");
+            var cleanserOfEvil = Resources.GetBlueprint<BlueprintAbility>("25a89a7bc31e5ee4e820d89d875b6a1c");
 
             var spawnFx = Helpers.Create<AbilitySpawnFx>(n =>
             {
