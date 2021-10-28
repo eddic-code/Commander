@@ -418,13 +418,16 @@ namespace Commander.Archetypes
                 n.AddComponents(debuffAreaEffect);
             });
 
+            var areaComp = Helpers.Create<AddAreaEffect>(c =>
+                c.m_AreaEffect = debuffArea.ToReference<BlueprintAbilityAreaEffectReference>());
+
             var buff = Helpers.CreateBuff("OathOfSacrificeBuff", "996ad375ab424020b588dd005b248a69", n =>
             {
                 n.SetName("Oath of Sacrifice");
                 n.SetDescription("Enemies within 20 feet are compelled to attack this target instead of others.");
                 n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
                 n.m_Icon = icon;
-                n.AddComponents(Helpers.Create<AddAreaEffect>(c => c.m_AreaEffect = debuffArea.ToReference<BlueprintAbilityAreaEffectReference>()));
+                n.AddComponents(areaComp);
             });
 
             var priorityTargetComp = Helpers.Create<PriorityTarget>(c =>

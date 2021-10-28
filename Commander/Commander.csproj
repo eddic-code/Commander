@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Archetypes\DivineSaintArchetype.cs" />
+    <Compile Include="Components\AddMutualImmunityToCriticalHits.cs" />
     <Compile Include="Components\IgnoreArmorPenaltiesComp.cs" />
     <Compile Include="Components\SaintsPresenceComp.cs" />
     <Compile Include="DescriptionTools.cs" />
