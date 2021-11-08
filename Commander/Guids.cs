@@ -53,22 +53,22 @@
 
         public const string PathOfSacrificeAc = "567ebadd34fc4b73af0e7228b977bc66";
 
-        public const string PathOfSacrificeDebuffT2 = "702a1900ce024ec998a40425d2c496ed";
-        public const string PathOfSacrificeDebuffAreaT2 = "8b443bf819684e27896c3f946f677196";
-        public const string PathOfSacrificeBuffT2 = "0053f84f3f8d42d2910dbe9dc8ffd82b";
-        public const string PathOfSacrificeT2 = "9c45da5f7ee44e1a926f9bf7a1f65559";
-        public const string PathOfSacrificeMainT2 = "34d45f84672f4654917e289814f81e5b";
+        public const string PathOfSacrificeDebuffT3 = "702a1900ce024ec998a40425d2c496ed";
+        public const string PathOfSacrificeDebuffAreaT3 = "8b443bf819684e27896c3f946f677196";
+        public const string PathOfSacrificeBuffT3 = "0053f84f3f8d42d2910dbe9dc8ffd82b";
+        public const string PathOfSacrificeT3 = "9c45da5f7ee44e1a926f9bf7a1f65559";
+        public const string PathOfSacrificeMainT3 = "34d45f84672f4654917e289814f81e5b";
 
-        public const string PathOfSacrificeDebuffT4 = "";
-        public const string PathOfSacrificeDebuffAreaT4 = "";
-        public const string PathOfSacrificeBuffT4 = "";
-        public const string PathOfSacrificeT4 = "";
-        public const string PathOfSacrificeMainT4 = "";
+        public const string PathOfSacrificeDebuffT4 = "7c07aa0b3887406195f5ef19d16889ad";
+        public const string PathOfSacrificeDebuffAreaT4 = "57406d5547fc4a6492a624459f5ceca9";
+        public const string PathOfSacrificeBuffT4 = "e5b2bfffc9c840f5aa90beba319d8471";
+        public const string PathOfSacrificeT4 = "16c1542b32444375baa06f38eb450419";
+        public const string PathOfSacrificeMainT4 = "8599893e3f8a4f0d9028e8d0a768e358";
 
-        public const string PathOfSacrificeDebuffT5 = "";
-        public const string PathOfSacrificeDebuffAreaT5 = "";
-        public const string PathOfSacrificeBuffT5 = "";
-        public const string PathOfSacrificeT5 = "";
-        public const string PathOfSacrificeMainT5 = "";
+        public const string PathOfSacrificeDebuffT5 = "ac28ef3962a1438e9e34465aa131d6a6";
+        public const string PathOfSacrificeDebuffAreaT5 = "f9bcc6c4a5af4c669aa64469cf146bd0";
+        public const string PathOfSacrificeBuffT5 = "5b906580894043859149ad292caa236e";
+        public const string PathOfSacrificeT5 = "0adfc87c10e4412d96b8b5218382980b";
+        public const string PathOfSacrificeMainT5 = "2efb553de4384b9b96eafe9f89d90941";
     }
 }

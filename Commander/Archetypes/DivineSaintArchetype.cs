@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Commander.Components;
 using HarmonyLib;
@@ -7,12 +8,14 @@ using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Items.Armors;
+using Kingmaker.Designers.EventConditionActionSystem.Actions;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
 using Kingmaker.Localization;
 using Kingmaker.RuleSystem;
+using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
@@ -27,6 +30,7 @@ using Kingmaker.UnitLogic.Mechanics;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using Kingmaker.UnitLogic.Mechanics.Conditions;
+using Kingmaker.UnitLogic.Mechanics.Properties;
 using Kingmaker.Utility;
 using Kingmaker.Visual.Animation.Kingmaker.Actions;
 
@@ -34,14 +38,12 @@ namespace Commander.Archetypes
 {
     internal static class DivineSaintArchetype
     {
-        private const string PathOfSacrificeT1Desc = "Enemies within 30 feet of you are compelled to attack you instead of your allies. " +
-                                                     "You receive a -3 penalty to weapon attack rolls and can no longer fight defensively.";
-
-        private const string PathOfSacrificeT2Desc = "While wearing medium or light armor, you can add your charisma modifier as a bonus to AC.";
-
-        private const string PathOfSacrificeT3Desc = "You become immune to attacks of opportunity.";
-        private const string PathOfSacrificeT4Desc = "You gain a +2 dodge bonus to AC.";
-        private const string PathOfSacrificeT5Desc = "Enemies affected by Path of Sacrifice now also become shaken.";
+        private const string PathOfSacrificeT1Desc = "Enemies within 20 feet of you are compelled to attack you instead of your allies. " +
+                                                     "You receive a -3 penalty to weapon attack rolls and can no longer fight defensively." +
+                                                     "\nAt 2nd level, you can add your charisma modifier as a bonus to AC while wearing medium or light armor." +
+                                                     "\nAt 5th level, you become immune to attacks of opportunity." +
+                                                     "\nAt 9th level, you gain a +2 dodge bonus to AC." +
+                                                     "\nAt 13th level, enemies affected by Path of Sacrifice now also become shaken.";
 
         public static void Create()
         {
@@ -67,29 +69,49 @@ namespace Commander.Archetypes
             var archetypeRef = archetype.ToReference<BlueprintArchetypeReference>();
             var pathOfSacrificeT1 = CreatePathOfSacrificeT1(archetypeRef);
             var pathOfSacrificeT2 = CreatePathOfSacrificeT2();
+            var pathOfSacrificeT3 = CreatePathOfSacrificeT3(archetypeRef);
+            var pathOfSacrificeT4 = CreatePathOfSacrificeT4(archetypeRef);
+            var pathOfSacrificeT5 = CreatePathOfSacrificeT5();
 
             var levelEntry1 = new LevelEntry
             {
                 Level = 1, 
-                Features = {CreateGuidedByRevelation(), CreateRelicArmor(), CreateSaintsTouch(), saintMystery, pathOfSacrificeT1}
+                Features = {CreateGuidedByRevelation(), CreateSaintsTouch(), saintMystery, pathOfSacrificeT1}
             };
 
             var levelEntry2 = new LevelEntry
             {
                 Level = 2,
-                Features = {pathOfSacrificeT2}
+                Features = {pathOfSacrificeT2, CreateRelicArmor()}
+            };
+
+            var levelEntry5 = new LevelEntry
+            {
+                Level = 5,
+                Features = {pathOfSacrificeT3}
+            };
+
+            var levelEntry9 = new LevelEntry
+            {
+                Level = 9,
+                Features = {pathOfSacrificeT4}
+            };
+
+            var levelEntry13 = new LevelEntry
+            {
+                Level = 13,
+                Features = {pathOfSacrificeT5}
             };
 
             archetype.ReplaceClassSkills = true;
             archetype.AddSkillPoints = 1;
             archetype.ClassSkills = new[] {StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice};
-            archetype.AddFeatures = new[] {levelEntry1, levelEntry2};
+            archetype.AddFeatures = new[] {levelEntry1, levelEntry2, levelEntry5, levelEntry9, levelEntry13};
             archetype.RemoveFeatures = new[] {Helpers.LevelEntry(1, mysterySelection), Helpers.LevelEntry(1, oracleCurseSelection), Helpers.LevelEntry(1, oracleAdditionalSpellsSelection)};
 
             oracle.m_Archetypes = oracle.m_Archetypes.AddToArray(archetype.ToReference<BlueprintArchetypeReference>()).ToArray();
-            Resources.AddBlueprint(archetype);
 
-            var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT2);
+            var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT2, pathOfSacrificeT3, pathOfSacrificeT4, pathOfSacrificeT5);
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
         }
 
@@ -97,13 +119,13 @@ namespace Commander.Archetypes
         {
             var ignorePenaltiesComp = Helpers.Create<IgnoreArmorPenaltiesComp>(n =>
             {
-                n.Categories = new HashSet<ArmorProficiencyGroup>{ArmorProficiencyGroup.Light, ArmorProficiencyGroup.Medium};
+                n.Categories = new HashSet<ArmorProficiencyGroup>{ArmorProficiencyGroup.Light, ArmorProficiencyGroup.Medium, ArmorProficiencyGroup.HeavyShield, ArmorProficiencyGroup.Buckler, ArmorProficiencyGroup.LightShield};
             });
 
             var relicArmor = Helpers.CreateBlueprint<BlueprintFeature>("RelicArmor", Guids.RelicArmor, n =>
             {
                 n.SetName("Relic Armor");
-                n.SetDescription("You can ignore all dexterity bonus caps and speed penalties of light armor, medium armor, light shields, and heavy shields.");
+                n.SetDescription("Your maximum dexterity bonus to AC permitted by your armor is increased by an amount equal to half your oracle level. Ignore all penalties to skill checks and speed imposed by medium armor, light armor, heavy shields, light shields, and bucklers.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.ReapplyOnLevelUp = true;
@@ -307,7 +329,7 @@ namespace Commander.Archetypes
                 {
                     IncreasedByStat = true,
                     ResourceBonusStat = StatType.Charisma,
-                    BaseValue = 2
+                    BaseValue = 1
                 };
 
                 n.m_Max = 50;
@@ -343,8 +365,8 @@ namespace Commander.Archetypes
             var healValue = new ContextDiceValue
             {
                 DiceCountValue = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.DamageDice}, 
-                DiceType = DiceType.D8,
-                BonusValue = new ContextValue {ValueType = ContextValueType.Rank}
+                DiceType = DiceType.D4,
+                BonusValue = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.DamageBonus}
             };
 
             var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle);
@@ -355,6 +377,16 @@ namespace Commander.Archetypes
                 n.m_BaseValueType = ContextRankBaseValueType.ClassLevel;
                 n.m_Type = AbilityRankType.DamageDice;
                 n.m_Class = new[]{oracle.ToReference<BlueprintCharacterClassReference>()};
+                n.m_Max = int.MaxValue;
+            });
+
+            var bonusContextRankConfig = Helpers.Create<ContextRankConfig>(n =>
+            {
+                n.m_Progression = ContextRankProgression.DoublePlusBonusValue;
+                n.m_BaseValueType = ContextRankBaseValueType.ClassLevel;
+                n.m_Type = AbilityRankType.DamageBonus;
+                n.m_Class = new[]{oracle.ToReference<BlueprintCharacterClassReference>()};
+                n.m_Max = int.MaxValue;
             });
 
             var healAction = Helpers.Create<ContextActionHealTarget>(n =>
@@ -370,7 +402,7 @@ namespace Commander.Archetypes
             var cureAbility = Helpers.CreateBlueprint<BlueprintAbility>("SaintsTouchAbility", Guids.SaintsTouchAbility, n =>
             {
                 n.SetName("Saint's Touch");
-                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level{/g}/2 + 1){g|Encyclopedia:Dice}d8{/g} points of {g|Encyclopedia:Damage}damage{/g} + 1 point per {g|Encyclopedia:Class_Level}class level{/g}. Can be used a number of times per day equal to 2 plus your charisma modifier.");
+                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level{/g}/2 + 1){g|Encyclopedia:Dice}d4{/g} points of {g|Encyclopedia:Damage}damage{/g} + 2 points per {g|Encyclopedia:Class_Level}class level{/g}. Can be used a number of times per day equal to 1 plus your charisma modifier.");
                 n.CanTargetFriends = true;
                 n.CanTargetSelf = true;
                 n.Type = AbilityType.Extraordinary;
@@ -383,7 +415,7 @@ namespace Commander.Archetypes
                 n.LocalizedSavingThrow = new LocalizedString();
                 n.m_DescriptionShort = new LocalizedString();
                 n.m_Icon = icon;
-                n.AddComponents(spawnFx, resourceLogicComp, abilityEffectComp, contextRankConfig);
+                n.AddComponents(spawnFx, resourceLogicComp, contextRankConfig, abilityEffectComp, bonusContextRankConfig);
             });
 
             var cureAbilityRef = cureAbility.ToReference<BlueprintAbilityReference>();
@@ -443,7 +475,7 @@ namespace Commander.Archetypes
                 n.AffectEnemies = true;
                 n.AggroEnemies = false;
                 n.Shape = AreaEffectShape.Cylinder;
-                n.Size = new Feet(30);
+                n.Size = new Feet(20);
                 n.AddComponents(debuffAreaEffect);
             });
 
@@ -472,23 +504,8 @@ namespace Commander.Archetypes
 
             debuff.AddComponent(priorityTargetComp);
 
-            var recalculateComp = Helpers.Create<RecalculateOnStatChange>(n =>
-            {
-                n.Stat = StatType.Charisma;
-            });
-
-            var saintsPresenceComp = Helpers.Create<SaintsPresenceComp>();
-
-            var acFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeAc", Guids.PathOfSacrificeAc, n =>
-            {
-                n.SetName("Path of Sacrifice - AC Bonus");
-                n.SetDescription("While wearing medium or light armor, you can add your charisma modifier as a bonus to AC.");
-                n.IsClassFeature = true;
-                n.Ranks = 1;
-                n.ReapplyOnLevelUp = true;
-                n.m_Icon = icon;
-                n.AddComponents(saintsPresenceComp, recalculateComp);
-            });
+            var fightingDefensively = Resources.GetBlueprint<BlueprintFeature>("ca22afeb94442b64fb8536e7a9f7dc11");
+            var removeFightingDefensively = Helpers.Create<RemoveFeatureOnApply>(n => n.m_Feature = fightingDefensively.ToReference<BlueprintUnitFactReference>());
 
             var feature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeT1", Guids.PathOfSacrificeT1, n =>
             {
@@ -497,7 +514,7 @@ namespace Commander.Archetypes
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
-                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>(), acFeature.ToReference<BlueprintUnitFactReference>()}));
+                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>()}));
             });
 
             var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle);
@@ -507,18 +524,18 @@ namespace Commander.Archetypes
                 n.m_Class = oracle.ToReference<BlueprintCharacterClassReference>();
                 n.m_Archetypes = new[] {divineSaintArchetypeRef};
                 n.m_Feature = feature.ToReference<BlueprintFeatureReference>();
-                n.Level = 7;
+                n.Level = 5;
                 n.BeforeThisLevel = true;
             });
 
             var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT1", Guids.PathOfSacrificeMainT1, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription(PathOfSacrificeT1Desc);
+                n.SetDescription("Enemies within 20 feet of you are compelled to attack you instead of your allies. You receive a -3 penalty to weapon attack rolls and can no longer fight defensively.");
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
-                n.AddComponents(mainFeatureComp);
+                n.AddComponents(mainFeatureComp, removeFightingDefensively);
             });
 
             return mainFeature;
@@ -538,7 +555,7 @@ namespace Commander.Archetypes
             var acFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeAc", Guids.PathOfSacrificeAc, n =>
             {
                 n.SetName("Path of Sacrifice - AC Bonus");
-                n.SetDescription("While wearing medium or light armor, you can add your charisma modifier as a bonus to AC.");
+                n.SetDescription("You can add your charisma modifier as a bonus to AC while wearing medium or light armor.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.ReapplyOnLevelUp = true;
@@ -553,7 +570,7 @@ namespace Commander.Archetypes
         {
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
 
-            var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT2", Guids.PathOfSacrificeDebuffT2, n =>
+            var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT3", Guids.PathOfSacrificeDebuffT3, n =>
             {
                 n.SetName("Path of Sacrifice");
                 n.SetDescription("This target is compelled to attack the divine saint.");
@@ -567,12 +584,12 @@ namespace Commander.Archetypes
                 n.Condition = new ConditionsChecker {Conditions = new Condition[] {new ContextConditionIsEnemy()}};
             });
 
-            var debuffArea = Helpers.CreateBlueprint<BlueprintAbilityAreaEffect>("PathOfSacrificeDebuffAreaT2", Guids.PathOfSacrificeDebuffAreaT2, n =>
+            var debuffArea = Helpers.CreateBlueprint<BlueprintAbilityAreaEffect>("PathOfSacrificeDebuffAreaT3", Guids.PathOfSacrificeDebuffAreaT3, n =>
             {
                 n.AffectEnemies = true;
                 n.AggroEnemies = false;
                 n.Shape = AreaEffectShape.Cylinder;
-                n.Size = new Feet(30);
+                n.Size = new Feet(20);
                 n.AddComponents(debuffAreaEffect);
             });
 
@@ -587,13 +604,18 @@ namespace Commander.Archetypes
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 
-            var buff = Helpers.CreateBuff("PathOfSacrificeBuffT2", Guids.PathOfSacrificeBuffT2, n =>
+            var aooImmunityComp = Helpers.Create<AddCondition>(n =>
+            {
+                n.Condition = UnitCondition.ImmuneToAttackOfOpportunity;
+            });
+
+            var buff = Helpers.CreateBuff("PathOfSacrificeBuffT3", Guids.PathOfSacrificeBuffT3, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription(PathOfSacrificeT2Desc);
+                n.SetDescription(PathOfSacrificeT1Desc);
                 n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
                 n.m_Icon = icon;
-                n.AddComponents(areaComp, penaltyComp);
+                n.AddComponents(areaComp, penaltyComp, aooImmunityComp);
             });
 
             var priorityTargetComp = Helpers.Create<PriorityTarget>(c =>
@@ -601,32 +623,14 @@ namespace Commander.Archetypes
 
             debuff.AddComponent(priorityTargetComp);
 
-            var recalculateComp = Helpers.Create<RecalculateOnStatChange>(n =>
-            {
-                n.Stat = StatType.Charisma;
-            });
-
-            var saintsPresenceComp = Helpers.Create<SaintsPresenceComp>();
-
-            var acFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeAc", Guids.PathOfSacrificeAc, n =>
-            {
-                n.SetName("Path of Sacrifice - AC Bonus");
-                n.SetDescription("While wearing medium or light armor, you can add your charisma modifier as a bonus to AC.");
-                n.IsClassFeature = true;
-                n.Ranks = 1;
-                n.ReapplyOnLevelUp = true;
-                n.m_Icon = icon;
-                n.AddComponents(saintsPresenceComp, recalculateComp);
-            });
-
-            var feature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeT2", Guids.PathOfSacrificeT2, n =>
+            var feature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeT3", Guids.PathOfSacrificeT3, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription(PathOfSacrificeT2Desc);
+                n.SetDescription(PathOfSacrificeT1Desc);
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
-                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>(), acFeature.ToReference<BlueprintUnitFactReference>()}));
+                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>()}));
             });
 
             var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle);
@@ -636,18 +640,207 @@ namespace Commander.Archetypes
                 n.m_Class = oracle.ToReference<BlueprintCharacterClassReference>();
                 n.m_Archetypes = new[] {divineSaintArchetypeRef};
                 n.m_Feature = feature.ToReference<BlueprintFeatureReference>();
-                n.Level = 11;
+                n.Level = 9;
                 n.BeforeThisLevel = true;
             });
 
-            var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT2", Guids.PathOfSacrificeMainT2, n =>
+            var fightingDefensively = Resources.GetBlueprint<BlueprintFeature>("ca22afeb94442b64fb8536e7a9f7dc11");
+            var removeFightingDefensively = Helpers.Create<RemoveFeatureOnApply>(n => n.m_Feature = fightingDefensively.ToReference<BlueprintUnitFactReference>());
+
+            var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT3", Guids.PathOfSacrificeMainT3, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription(PathOfSacrificeT2Desc);
+                n.SetDescription("You become immune to attacks of opportunity.");
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
-                n.AddComponents(mainFeatureComp);
+                n.AddComponents(mainFeatureComp, removeFightingDefensively);
+            });
+
+            return mainFeature;
+        }
+
+        private static BlueprintFeature CreatePathOfSacrificeT4(BlueprintArchetypeReference divineSaintArchetypeRef)
+        {
+            var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
+
+            var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT4", Guids.PathOfSacrificeDebuffT4, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription("This target is compelled to attack the divine saint.");
+                n.m_Flags = BlueprintBuff.Flags.Harmful;
+                n.Stacking = StackingType.Replace;
+            });
+
+            var debuffAreaEffect = Helpers.Create<AbilityAreaEffectBuff>(n =>
+            {
+                n.m_Buff = debuff.ToReference<BlueprintBuffReference>();
+                n.Condition = new ConditionsChecker {Conditions = new Condition[] {new ContextConditionIsEnemy()}};
+            });
+
+            var debuffArea = Helpers.CreateBlueprint<BlueprintAbilityAreaEffect>("PathOfSacrificeDebuffAreaT4", Guids.PathOfSacrificeDebuffAreaT4, n =>
+            {
+                n.AffectEnemies = true;
+                n.AggroEnemies = false;
+                n.Shape = AreaEffectShape.Cylinder;
+                n.Size = new Feet(20);
+                n.AddComponents(debuffAreaEffect);
+            });
+
+            var areaComp = Helpers.Create<AddAreaEffect>(c =>
+                c.m_AreaEffect = debuffArea.ToReference<BlueprintAbilityAreaEffectReference>());
+
+            var penaltyComp = Helpers.Create<WeaponMultipleCategoriesAttackBonus>(n =>
+            {
+                n.Categories = new[] {WeaponCategory.Touch, WeaponCategory.Ray};
+                n.AttackBonus = -3;
+                n.ExceptForCategories = true;
+                n.Descriptor = ModifierDescriptor.UntypedStackable;
+            });
+
+            var dodgeBonusComp = Helpers.Create<AddStatBonus>(n =>
+            {
+                n.Stat = StatType.AC;
+                n.Value = 2;
+                n.Descriptor = ModifierDescriptor.Dodge;
+            });
+
+            var aooImmunityComp = Helpers.Create<AddCondition>(n =>
+            {
+                n.Condition = UnitCondition.ImmuneToAttackOfOpportunity;
+            });
+
+            var buff = Helpers.CreateBuff("PathOfSacrificeBuffT4", Guids.PathOfSacrificeBuffT4, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription(PathOfSacrificeT1Desc);
+                n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
+                n.m_Icon = icon;
+                n.AddComponents(areaComp, penaltyComp, aooImmunityComp, dodgeBonusComp);
+            });
+
+            var priorityTargetComp = Helpers.Create<PriorityTarget>(c =>
+                c.PriorityFact = buff.ToReference<BlueprintUnitFactReference>());
+
+            debuff.AddComponent(priorityTargetComp);
+
+            var feature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeT4", Guids.PathOfSacrificeT4, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription(PathOfSacrificeT1Desc);
+                n.IsClassFeature = true;
+                n.m_Icon = icon;
+                n.Ranks = 1;
+                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>()}));
+            });
+
+            var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle);
+
+            var mainFeatureComp = Helpers.Create<AddFeatureOnClassLevel>(n =>
+            {
+                n.m_Class = oracle.ToReference<BlueprintCharacterClassReference>();
+                n.m_Archetypes = new[] {divineSaintArchetypeRef};
+                n.m_Feature = feature.ToReference<BlueprintFeatureReference>();
+                n.Level = 13;
+                n.BeforeThisLevel = true;
+            });
+
+            var fightingDefensively = Resources.GetBlueprint<BlueprintFeature>("ca22afeb94442b64fb8536e7a9f7dc11");
+            var removeFightingDefensively = Helpers.Create<RemoveFeatureOnApply>(n => n.m_Feature = fightingDefensively.ToReference<BlueprintUnitFactReference>());
+
+            var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT4", Guids.PathOfSacrificeMainT4, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription("You gain a +2 dodge bonus to AC.");
+                n.IsClassFeature = true;
+                n.m_Icon = icon;
+                n.Ranks = 1;
+                n.AddComponents(mainFeatureComp, removeFightingDefensively);
+            });
+
+            return mainFeature;
+        }
+
+        private static BlueprintFeature CreatePathOfSacrificeT5()
+        {
+            var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
+
+            var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT5", Guids.PathOfSacrificeDebuffT5, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription("This target is compelled to attack the divine saint.");
+                n.m_Flags = BlueprintBuff.Flags.Harmful;
+                n.Stacking = StackingType.Replace;
+            });
+
+            var debuffAreaEffect = Helpers.Create<AbilityAreaEffectBuff>(n =>
+            {
+                n.m_Buff = debuff.ToReference<BlueprintBuffReference>();
+                n.Condition = new ConditionsChecker {Conditions = new Condition[] {new ContextConditionIsEnemy()}};
+            });
+
+            var debuffArea = Helpers.CreateBlueprint<BlueprintAbilityAreaEffect>("PathOfSacrificeDebuffAreaT5", Guids.PathOfSacrificeDebuffAreaT5, n =>
+            {
+                n.AffectEnemies = true;
+                n.AggroEnemies = false;
+                n.Shape = AreaEffectShape.Cylinder;
+                n.Size = new Feet(20);
+                n.AddComponents(debuffAreaEffect);
+            });
+
+            var areaComp = Helpers.Create<AddAreaEffect>(c =>
+                c.m_AreaEffect = debuffArea.ToReference<BlueprintAbilityAreaEffectReference>());
+
+            var penaltyComp = Helpers.Create<WeaponMultipleCategoriesAttackBonus>(n =>
+            {
+                n.Categories = new[] {WeaponCategory.Touch, WeaponCategory.Ray};
+                n.AttackBonus = -3;
+                n.ExceptForCategories = true;
+                n.Descriptor = ModifierDescriptor.UntypedStackable;
+            });
+
+            var dodgeBonusComp = Helpers.Create<AddStatBonus>(n =>
+            {
+                n.Stat = StatType.AC;
+                n.Value = 2;
+                n.Descriptor = ModifierDescriptor.Dodge;
+            });
+
+            var aooImmunityComp = Helpers.Create<AddCondition>(n =>
+            {
+                n.Condition = UnitCondition.ImmuneToAttackOfOpportunity;
+            });
+
+            var buff = Helpers.CreateBuff("PathOfSacrificeBuffT5", Guids.PathOfSacrificeBuffT5, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription(PathOfSacrificeT1Desc);
+                n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
+                n.m_Icon = icon;
+                n.AddComponents(areaComp, penaltyComp, aooImmunityComp, dodgeBonusComp);
+            });
+
+            var priorityTargetComp = Helpers.Create<PriorityTarget>(c =>
+                c.PriorityFact = buff.ToReference<BlueprintUnitFactReference>());
+
+            var shakenEffectComp = Helpers.Create<AddCondition>(n =>
+            {
+                n.Condition = UnitCondition.Shaken;
+            });
+
+            debuff.AddComponents(priorityTargetComp, shakenEffectComp);
+
+            var fightingDefensively = Resources.GetBlueprint<BlueprintFeature>("ca22afeb94442b64fb8536e7a9f7dc11");
+            var removeFightingDefensively = Helpers.Create<RemoveFeatureOnApply>(n => n.m_Feature = fightingDefensively.ToReference<BlueprintUnitFactReference>());
+
+            var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT5", Guids.PathOfSacrificeMainT5, n =>
+            {
+                n.SetName("Path of Sacrifice");
+                n.SetDescription("Enemies affected by Path of Sacrifice now also become shaken.");
+                n.IsClassFeature = true;
+                n.m_Icon = icon;
+                n.Ranks = 1;
+                n.AddComponents(Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>()}), removeFightingDefensively);
             });
 
             return mainFeature;

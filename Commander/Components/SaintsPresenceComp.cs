@@ -29,7 +29,6 @@ namespace Commander.Components
             CheckConditions();
         }
 
-        // Token: 0x0600C2DE RID: 49886 RVA: 0x003088AD File Offset: 0x00306AAD
         public override void OnTurnOff()
         {
             base.OnTurnOff();

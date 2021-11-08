@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using Kingmaker.Blueprints;
+using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Blueprints.JsonSystem;
 using Kingmaker.PubSubSystem;
@@ -12,6 +15,18 @@ namespace Commander.Components
     {
         public HashSet<ArmorProficiencyGroup> Categories;
 
+        private static BlueprintCharacterClass _oracleClass;
+
+        private static BlueprintCharacterClass OracleClass
+        {
+            get
+            {
+                return _oracleClass ??=
+                    ResourcesLibrary.TryGetBlueprint(new BlueprintGuid(Guid.Parse(Guids.Oracle))) as
+                        BlueprintCharacterClass;
+            }
+        }
+        
         public override void OnTurnOn() 
         {
             base.OnTurnOn();
@@ -45,15 +60,11 @@ namespace Commander.Components
 
         public void OnEventDidTrigger(RuleCalculateArmorMaxDexBonusLimit evt)
         {
-            if (!evt.Armor.Blueprint.IsShield && Categories.Contains(evt.Armor.ArmorType())) 
-            {
-                evt.Result = null;
-                return;
-            }
+            var level = Owner.Descriptor.Progression.GetClassLevel(OracleClass) / 2;
 
-            if (evt.Armor.Blueprint.IsShield) 
+            if (Categories.Contains(evt.Armor.ArmorType())) 
             {
-                evt.Result = null;
+                evt.Result += level;
             }
         }
     }
