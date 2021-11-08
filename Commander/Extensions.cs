@@ -375,6 +375,10 @@ namespace Commander {
             feature.m_DisplayName = Helpers.CreateString(feature.name + ".Name", name);
         }
 
+        public static void SetName(this BlueprintArchetype feature, String name) {
+            feature.LocalizedName = Helpers.CreateBlueprintName(feature.name, name);
+        }
+
         public static void SetDescriptionUntagged(this BlueprintUnitFact feature, String description) {
             feature.m_Description = Helpers.CreateString(feature.name + ".Description", description);
         }
@@ -387,6 +391,11 @@ namespace Commander {
         public static void SetDescription(this BlueprintUnitFact feature, String description) {
             var taggedDescription = DescriptionTools.TagEncyclopediaEntries(description);
             feature.m_Description = Helpers.CreateString(feature.name + ".Description", taggedDescription);
+        }
+
+        public static void SetDescription(this BlueprintArchetype feature, String description) {
+            var taggedDescription = DescriptionTools.TagEncyclopediaEntries(description);
+            feature.LocalizedDescription = Helpers.CreateBlueprintDescription(feature.name, taggedDescription);
         }
 
         public static bool HasFeatureWithId(this LevelEntry level, String id) {
