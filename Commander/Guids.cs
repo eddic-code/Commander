@@ -68,7 +68,8 @@
         public const string PathOfSacrificeDebuffT5 = "ac28ef3962a1438e9e34465aa131d6a6";
         public const string PathOfSacrificeDebuffAreaT5 = "f9bcc6c4a5af4c669aa64469cf146bd0";
         public const string PathOfSacrificeBuffT5 = "5b906580894043859149ad292caa236e";
-        public const string PathOfSacrificeT5 = "0adfc87c10e4412d96b8b5218382980b";
         public const string PathOfSacrificeMainT5 = "2efb553de4384b9b96eafe9f89d90941";
+
+        public const string Clemency = "0adfc87c10e4412d96b8b5218382980b";
     }
 }

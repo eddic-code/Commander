@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Commander.Components;
 using HarmonyLib;
@@ -8,7 +7,6 @@ using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Items.Armors;
-using Kingmaker.Designers.EventConditionActionSystem.Actions;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Stats;
@@ -30,7 +28,6 @@ using Kingmaker.UnitLogic.Mechanics;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using Kingmaker.UnitLogic.Mechanics.Conditions;
-using Kingmaker.UnitLogic.Mechanics.Properties;
 using Kingmaker.Utility;
 using Kingmaker.Visual.Animation.Kingmaker.Actions;
 
@@ -58,6 +55,7 @@ namespace Commander.Archetypes
 
             // Revelations
             CreateRevelations(saintMysteryRef);
+            CreateClemency(saintMysteryRef);
 
             // Archetype creation.
             var archetype = Helpers.CreateBlueprint<BlueprintArchetype>("DivineSaintArchetype", Guids.DivineSaintArchetype, a =>
@@ -76,13 +74,13 @@ namespace Commander.Archetypes
             var levelEntry1 = new LevelEntry
             {
                 Level = 1, 
-                Features = {CreateGuidedByRevelation(), CreateSaintsTouch(), saintMystery, pathOfSacrificeT1}
+                Features = {CreateGuidedByRevelation(), saintMystery, pathOfSacrificeT1}
             };
 
             var levelEntry2 = new LevelEntry
             {
                 Level = 2,
-                Features = {pathOfSacrificeT2, CreateRelicArmor()}
+                Features = {pathOfSacrificeT2, CreateRelicArmor(), CreateSaintsTouch()}
             };
 
             var levelEntry5 = new LevelEntry
@@ -113,6 +111,26 @@ namespace Commander.Archetypes
 
             var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT2, pathOfSacrificeT3, pathOfSacrificeT4, pathOfSacrificeT5);
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
+        }
+
+        private static void CreateClemency(BlueprintFeatureReference mystery)
+        {
+            var immunityComp = new AddMutualImmunityToCriticalHits();
+
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            Helpers.CreateBlueprint<BlueprintFeature>("Clemency", Guids.Clemency, n =>
+            {
+                n.SetName("Clemency");
+                n.SetDescription("You become immune to critical strikes. However, you can no longer deal critical strikes yourself.");
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(immunityComp, prerequisites);
+            });
         }
 
         private static BlueprintFeature CreateRelicArmor()
@@ -373,7 +391,7 @@ namespace Commander.Archetypes
 
             var contextRankConfig = Helpers.Create<ContextRankConfig>(n =>
             {
-                n.m_Progression = ContextRankProgression.OnePlusDiv2;
+                n.m_Progression = ContextRankProgression.Div2;
                 n.m_BaseValueType = ContextRankBaseValueType.ClassLevel;
                 n.m_Type = AbilityRankType.DamageDice;
                 n.m_Class = new[]{oracle.ToReference<BlueprintCharacterClassReference>()};
@@ -402,7 +420,7 @@ namespace Commander.Archetypes
             var cureAbility = Helpers.CreateBlueprint<BlueprintAbility>("SaintsTouchAbility", Guids.SaintsTouchAbility, n =>
             {
                 n.SetName("Saint's Touch");
-                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level{/g}/2 + 1){g|Encyclopedia:Dice}d4{/g} points of {g|Encyclopedia:Damage}damage{/g} + 2 points per {g|Encyclopedia:Class_Level}class level{/g}. Can be used a number of times per day equal to 1 plus your charisma modifier.");
+                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level{/g}/2){g|Encyclopedia:Dice}d4{/g} points of {g|Encyclopedia:Damage}damage{/g} + 2 points per {g|Encyclopedia:Class_Level}class level{/g}. Can be used a number of times per day equal to 1 plus your charisma modifier.");
                 n.CanTargetFriends = true;
                 n.CanTargetSelf = true;
                 n.Type = AbilityType.Extraordinary;
@@ -424,7 +442,7 @@ namespace Commander.Archetypes
             var saintsCure = Helpers.CreateBlueprint<BlueprintFeature>("SaintsTouchFeature", Guids.SaintsTouchFeature, n =>
             {
                 n.SetName("Saint's Touch");
-                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level{/g}/2 + 1){g|Encyclopedia:Dice}d8{/g} points of {g|Encyclopedia:Damage}damage{/g} + 1 point per {g|Encyclopedia:Class_Level}class level{/g}. Can be used a number of times per day equal to 2 plus your charisma modifier.");
+                n.SetDescription("Cures ({g|Encyclopedia:Class_Level}class level{/g}/2){g|Encyclopedia:Dice}d4{/g} points of {g|Encyclopedia:Damage}damage{/g} + 2 points per {g|Encyclopedia:Class_Level}class level{/g}. Can be used a number of times per day equal to 1 plus your charisma modifier.");
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
