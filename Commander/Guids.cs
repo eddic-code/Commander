@@ -71,5 +71,7 @@
         public const string PathOfSacrificeMainT5 = "2efb553de4384b9b96eafe9f89d90941";
 
         public const string Clemency = "0adfc87c10e4412d96b8b5218382980b";
+        public const string Atonement = "39de105fd4b94177858c5ef14936fa70";
+        public const string AtonementBuff = "bad572c7b0564f51b615f427dd27a671";
     }
 }

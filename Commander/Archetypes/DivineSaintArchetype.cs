@@ -54,8 +54,11 @@ namespace Commander.Archetypes
             var saintMysteryRef = saintMystery.ToReference<BlueprintFeatureReference>();
 
             // Revelations
+            var revelationSelection = Resources.GetBlueprint<BlueprintFeatureSelection>("60008a10ad7ad6543b1f63016741a5d2");
+
             CreateRevelations(saintMysteryRef);
-            CreateClemency(saintMysteryRef);
+            AddToSelection(revelationSelection, CreateClemency(saintMysteryRef));
+            AddToSelection(revelationSelection, CreateAtonement(saintMysteryRef));
 
             // Archetype creation.
             var archetype = Helpers.CreateBlueprint<BlueprintArchetype>("DivineSaintArchetype", Guids.DivineSaintArchetype, a =>
@@ -113,7 +116,7 @@ namespace Commander.Archetypes
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
         }
 
-        private static void CreateClemency(BlueprintFeatureReference mystery)
+        private static BlueprintFeature CreateClemency(BlueprintFeatureReference mystery)
         {
             var immunityComp = new AddMutualImmunityToCriticalHits();
 
@@ -122,7 +125,7 @@ namespace Commander.Archetypes
                 n.m_Features = new[] {mystery};
             });
 
-            Helpers.CreateBlueprint<BlueprintFeature>("Clemency", Guids.Clemency, n =>
+            var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Clemency", Guids.Clemency, n =>
             {
                 n.SetName("Clemency");
                 n.SetDescription("You become immune to critical strikes. However, you can no longer deal critical strikes yourself.");
@@ -130,6 +133,38 @@ namespace Commander.Archetypes
                 n.Ranks = 1;
                 n.Groups = new[] {FeatureGroup.OracleRevelation};
                 n.AddComponents(immunityComp, prerequisites);
+            });
+
+            return clemency;
+        }
+
+        private static BlueprintFeature CreateAtonement(BlueprintFeatureReference mystery)
+        {
+            var atonementComp = new AtonementComp();
+            var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.KiDiamondSoulFeature).m_Icon;
+
+            Helpers.CreateBuff("AtonementBuff", Guids.AtonementBuff, n =>
+            {
+                n.SetName("Atonement");
+                n.SetDescription("Fast healing for 20% of Saint's Touch value.");
+                n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
+                n.m_Icon = icon;
+                n.AddComponents(new AtonementBuffComp());
+            });
+
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            return Helpers.CreateBlueprint<BlueprintFeature>("Atonement", Guids.Atonement, n =>
+            {
+                n.SetName("Atonement");
+                n.SetDescription("Your Saint's Touch now causes the target to gain an amount of fast healing equal to 20% of the damage healed for three rounds.");
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(atonementComp, prerequisites);
             });
         }
 
@@ -323,7 +358,6 @@ namespace Commander.Archetypes
         private static void CreateRevelations(BlueprintFeatureReference saintMysteryRef)
         {
             EnableRevelation(saintMysteryRef, Guids.OracleRevelationChannel);
-            EnableRevelation(saintMysteryRef, Guids.OracleRevelationSafeCuring);
             EnableRevelation(saintMysteryRef, Guids.OracleRevelationSpiritBoost);
             EnableRevelation(saintMysteryRef, Guids.OracleRevelationWarSight);
             EnableRevelation(saintMysteryRef, Guids.OracleRevelationLifesense);
@@ -936,6 +970,13 @@ namespace Commander.Archetypes
             });
 
             return abilityFeature;
+        }
+
+        private static void AddToSelection(BlueprintFeatureSelection selection, SimpleBlueprint feature)
+        {
+            var list = selection.m_AllFeatures.ToList();
+            list.Add(feature.ToReference<BlueprintFeatureReference>());
+            selection.m_AllFeatures = list.ToArray();
         }
 
         private static void EnableRevelation(BlueprintFeatureReference mystery, string revelationGuid)
