@@ -6,7 +6,9 @@ using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
+using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.Blueprints.Items.Armors;
+using Kingmaker.Designers.Mechanics.Buffs;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Stats;
@@ -15,7 +17,6 @@ using Kingmaker.Enums.Damage;
 using Kingmaker.Localization;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules;
-using Kingmaker.UI.UnitSettings.Blueprints;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
@@ -53,6 +54,9 @@ namespace Commander.Archetypes
             var oracleCurseSelection = Resources.GetBlueprint<BlueprintFeatureSelection>(Guids.OracleCurseSelection);
             var oracleAdditionalSpellsSelection = Resources.GetBlueprint<BlueprintFeatureSelection>(Guids.OracleAdditionalSpellsSelection);
 
+            // Skills
+            var saintsTouch = CreateSaintsTouch();
+
             // Saint Mystery
             var saintMystery = CreateSaintMystery();
             var saintMysteryRef = saintMystery.ToReference<BlueprintFeatureReference>();
@@ -64,6 +68,8 @@ namespace Commander.Archetypes
             AddToSelection(revelationSelection, CreateClemency(saintMysteryRef));
             AddToSelection(revelationSelection, CreateAtonement(saintMysteryRef));
             AddToSelection(revelationSelection, CreateAsylum(saintMysteryRef));
+            AddToSelection(revelationSelection, CreatePenance(saintMysteryRef));
+            AddToSelection(revelationSelection, CreateLuminositeEternelle(saintMysteryRef));
 
             // Archetype creation.
             var archetype = Helpers.CreateBlueprint<BlueprintArchetype>("DivineSaintArchetype", Guids.DivineSaintArchetype, a =>
@@ -88,7 +94,7 @@ namespace Commander.Archetypes
             var levelEntry2 = new LevelEntry
             {
                 Level = 2,
-                Features = {pathOfSacrificeT2, CreateRelicArmor(), CreateSaintsTouch()}
+                Features = {pathOfSacrificeT2, CreateRelicArmor(), saintsTouch}
             };
 
             var levelEntry5 = new LevelEntry
@@ -128,7 +134,8 @@ namespace Commander.Archetypes
                 m_SavingThrowType = ModifyD20.InnerSavingThrowType.All,
                 AddBonus = true,
                 Rule = RuleType.DispelMagic,
-                Bonus = new ContextValue{ValueType = ContextValueType.Simple, Value = 6}
+                DispellMagicCheckType = RuleDispelMagic.CheckType.CasterLevel,
+                Bonus = new ContextValue{ValueType = ContextValueType.Simple, Value = 4}
             };
 
             var dispelMagicTarget = Resources.GetBlueprint<BlueprintAbility>("143775c49ae6b7446b805d3b2e702298")
@@ -152,7 +159,7 @@ namespace Commander.Archetypes
             var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Penance", Guids.Penance, n =>
             {
                 n.SetName("Penance");
-                n.SetDescription("You become immune to critical strikes. However, you can no longer deal critical strikes yourself.");
+                n.SetDescription("Gain a +4 bonus to Dispel Magic and Greater Dispel Magic checks. Dispel Magic can now be cast as a swift action.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.Groups = new[] {FeatureGroup.OracleRevelation};
@@ -292,6 +299,8 @@ namespace Commander.Archetypes
         {
             var atonementComp = new AtonementComp();
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.KiDiamondSoulFeature).m_Icon;
+            var saintsTouch = Resources.GetBlueprint<BlueprintAbility>(Guids.SaintsTouchAbility)
+                .ToReference<BlueprintAbilityReference>();
 
             Helpers.CreateBuff("AtonementBuff", Guids.AtonementBuff, n =>
             {
@@ -307,15 +316,209 @@ namespace Commander.Archetypes
                 n.m_Features = new[] {mystery};
             });
 
+            var autoQuicken = new AutoMetamagic
+            {
+                Abilities = new List<BlueprintAbilityReference>{saintsTouch},
+                Metamagic = Metamagic.Quicken,
+                m_AllowedAbilities = AutoMetamagic.AllowedType.Any
+            };
+
             return Helpers.CreateBlueprint<BlueprintFeature>("Atonement", Guids.Atonement, n =>
             {
                 n.SetName("Atonement");
-                n.SetDescription("Your Saint's Touch now causes the target to gain an amount of fast healing equal to 20% of the damage healed for three rounds.");
+                n.SetDescription("Your Saint's Touch now causes the target to gain an amount of fast healing equal to 20% of the damage healed for three rounds. It also becomes a swift action.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.Groups = new[] {FeatureGroup.OracleRevelation};
-                n.AddComponents(atonementComp, prerequisites);
+                n.AddComponents(atonementComp, prerequisites, autoQuicken);
             });
+        }
+
+        private static BlueprintFeature CreateLuminositeEternelle(BlueprintFeatureReference mystery)
+        {
+            const string desc = "You can create a luminous standard that protects a specified area as a full round action. All allies within the area receive a sacred bonus equal to your charisma modifier on all saving throws" +
+                                "and AC while they remain inside the area. This ability lasts for one hour per oracle level and can be used once per day.";
+
+            var guardedHearth = Resources.GetBlueprint<BlueprintAbility>("76291e62d2496ad41824044aba3077ea");
+
+            // Resource
+            var resource = Helpers.CreateBlueprint<BlueprintAbilityResource>("LuminositeEternelleResource", Guids.LuminositeEternelleResource, n =>
+            {
+                n.m_MaxAmount = new BlueprintAbilityResource.Amount
+                {
+                    IncreasedByStat = false,
+                    BaseValue = 1
+                };
+
+                n.m_Max = 1;
+                n.LocalizedName = new LocalizedString();
+                n.LocalizedDescription = new LocalizedString();
+            });
+
+            // Buff
+            var fortitudeComp = new AddStatBonusAbilityValue
+            {
+                Descriptor = ModifierDescriptor.Sacred,
+                Stat = StatType.SaveFortitude,
+                Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+            };
+
+            var reflexComp = new AddStatBonusAbilityValue
+            {
+                Descriptor = ModifierDescriptor.Sacred,
+                Stat = StatType.SaveReflex,
+                Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+            };
+
+            var willComp = new AddStatBonusAbilityValue
+            {
+                Descriptor = ModifierDescriptor.Sacred,
+                Stat = StatType.SaveWill,
+                Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+            };
+
+            var acComp = new AddStatBonusAbilityValue
+            {
+                Descriptor = ModifierDescriptor.Sacred,
+                Stat = StatType.AC,
+                Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+            };
+
+            var rankConfig = new ContextRankConfig
+            {
+                m_Type = AbilityRankType.StatBonus,
+                m_BaseValueType = ContextRankBaseValueType.StatBonus,
+                m_Stat = StatType.Charisma,
+                m_Max = 20
+            };
+
+            var buff = Helpers.CreateBuff("LuminositeEternelleBuff", Guids.LuminositeEternelleBuff, n =>
+            {
+                n.SetName("Luminosite Eternelle");
+                n.SetDescription(desc);
+                n.IsClassFeature = true;
+                n.m_Icon = guardedHearth.m_Icon;
+                n.AddComponents(fortitudeComp, reflexComp, willComp, acComp, rankConfig);
+            });
+
+            // Area
+            var areaEffectBuff = new AbilityAreaEffectBuff
+            {
+                m_Buff = buff.ToReference<BlueprintBuffReference>(),
+                Condition = new ConditionsChecker {Conditions = new Condition[] {new ContextConditionIsAlly()}}
+            };
+
+            var guardedHearthArea = Resources.GetBlueprint<BlueprintAbilityAreaEffect>("3635b48c6e8d54947bbd27c1be818677");
+
+            var areaEffect = Helpers.CreateBlueprint<BlueprintAbilityAreaEffect>("LuminositeEternelleArea", Guids.LuminositeEternelleArea, n =>
+            {
+                n.AggroEnemies = true;
+                n.Shape = AreaEffectShape.Cylinder;
+                n.Size = new Feet(30);
+                n.Fx = guardedHearthArea.Fx;
+                n.AddComponents(areaEffectBuff);
+            });
+
+            // Ability
+            var spawnArea = new ContextActionSpawnAreaEffect
+            {
+                m_AreaEffect = areaEffect.ToReference<BlueprintAbilityAreaEffectReference>(),
+                DurationValue = new ContextDurationValue
+                {
+                    m_IsExtendable = true, Rate = DurationRate.Hours, DiceCountValue = new ContextValue(),
+                    BonusValue = new ContextValue {ValueType = ContextValueType.Rank}
+                }
+            };
+
+            var effectRunActions = new AbilityEffectRunAction
+            {
+                Actions = new ActionList
+                {
+                    Actions = new GameAction[]{spawnArea}
+                }
+            };
+
+            var spawnFx = new AbilitySpawnFx
+            {
+                Anchor = AbilitySpawnFxAnchor.ClickedTarget,
+                PositionAnchor = AbilitySpawnFxAnchor.None,
+                OrientationAnchor = AbilitySpawnFxAnchor.None,
+                PrefabLink = guardedHearth.GetComponent<AbilitySpawnFx>()?.PrefabLink
+            };
+
+            var spellComp = new SpellComponent {School = SpellSchool.Enchantment};
+
+            var resourceLogic = new AbilityResourceLogic
+            {
+                m_IsSpendResource = true,
+                Amount = 1,
+                m_RequiredResource = resource.ToReference<BlueprintAbilityResourceReference>(),
+            };
+
+            var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle)
+                .ToReference<BlueprintCharacterClassReference>();
+
+            var contextRankConfig = new ContextRankConfig
+            {
+                m_Type = AbilityRankType.Default,
+                m_BaseValueType = ContextRankBaseValueType.ClassLevel,
+                m_Max = 20,
+                m_Class = new[] {oracle}
+            };
+
+            var ability = Helpers.CreateBlueprint<BlueprintAbility>("LuminositeEternelleAbility", Guids.LuminositeEternelleAbility, n =>
+            {
+                n.m_Icon = guardedHearth.m_Icon;
+                n.Type = AbilityType.SpellLike;
+                n.Range = AbilityRange.Medium;
+                n.CanTargetPoint = true;
+                n.CanTargetEnemies = true;
+                n.CanTargetFriends = true;
+                n.CanTargetSelf = true;
+                n.SpellResistance = true;
+                n.EffectOnEnemy = AbilityEffectOnUnit.Harmful;
+                n.Animation = UnitAnimationActionCastSpell.CastAnimationStyle.Point;
+                n.ActionType = UnitCommand.CommandType.Standard;
+                n.AvailableMetamagic = Metamagic.Quicken | Metamagic.Reach | Metamagic.Extend | Metamagic.Heighten |
+                                       Metamagic.CompletelyNormal;
+                n.LocalizedDuration = Helpers.CreateString("LuminositeEternelle" + ".Duration", "1 hour/level");
+                n.SetName("Luminosite Eternelle");
+                n.SetDescription(desc);
+                n.AddComponents(spellComp, effectRunActions, spawnFx, resourceLogic, contextRankConfig);
+                n.LocalizedSavingThrow = new LocalizedString();
+            });
+
+            // Ability Feature
+            var classPrerequisite = new PrerequisiteClassLevel
+            {
+                m_CharacterClass = oracle,
+                Level = 11
+            };
+
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            var abilityComp = Helpers.Create<AddFacts>(c => c.m_Facts = new[]{ability.ToReference<BlueprintUnitFactReference>()});
+
+            var resouceComp = Helpers.Create<AddAbilityResources>(n =>
+            {
+                n.m_Resource = resource.ToReference<BlueprintAbilityResourceReference>();
+                n.RestoreAmount = true;
+            });
+
+            var abilityFeature = Helpers.CreateBlueprint<BlueprintFeature>("LuminositeEternelle", Guids.LuminositeEternelle, n =>
+            {
+                n.SetName("Luminosite Eternelle");
+                n.SetDescription(desc);
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(abilityComp, prerequisites, classPrerequisite, resouceComp);
+            });
+
+            return abilityFeature;
         }
 
         private static BlueprintFeature CreateRelicArmor()

@@ -78,5 +78,11 @@
         public const string AsylumHiddenBuff = "8e22f19ebc3945718446eb0b61b9d7d4";
         public const string AsylumToggleAbility = "5123d74ba4e34130856fae7676c6acf9";
         public const string Penance = "0fb12daf0fa0453d9a2d95a94c4d8b80";
+
+        public const string LuminositeEternelle = "5c941bed96344a95b413e57e1151b3ee";
+        public const string LuminositeEternelleAbility = "9774e9385e684edfabe81b00e58f3fa8";
+        public const string LuminositeEternelleArea = "80fbb5b291e74754969ae10659f16813";
+        public const string LuminositeEternelleBuff = "f08c8e6377b6433eb1559e89319a0c10";
+        public const string LuminositeEternelleResource = "272ef4db09fc45e1a73cb9881d70b9e2";
     }
 }
