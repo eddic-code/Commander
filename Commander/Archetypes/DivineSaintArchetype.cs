@@ -14,6 +14,7 @@ using Kingmaker.Enums;
 using Kingmaker.Enums.Damage;
 using Kingmaker.Localization;
 using Kingmaker.RuleSystem;
+using Kingmaker.RuleSystem.Rules;
 using Kingmaker.UI.UnitSettings.Blueprints;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
@@ -118,6 +119,47 @@ namespace Commander.Archetypes
 
             var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT2, pathOfSacrificeT3, pathOfSacrificeT4, pathOfSacrificeT5);
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
+        }
+
+        private static BlueprintFeature CreatePenance(BlueprintFeatureReference mystery)
+        {
+            var bonusComp = new ModifyD20
+            {
+                m_SavingThrowType = ModifyD20.InnerSavingThrowType.All,
+                AddBonus = true,
+                Rule = RuleType.DispelMagic,
+                Bonus = new ContextValue{ValueType = ContextValueType.Simple, Value = 6}
+            };
+
+            var dispelMagicTarget = Resources.GetBlueprint<BlueprintAbility>("143775c49ae6b7446b805d3b2e702298")
+                .ToReference<BlueprintAbilityReference>();
+
+            var dispelMagicPoint = Resources.GetBlueprint<BlueprintAbility>("9f6daa93291737c40b8a432c374226a7")
+                .ToReference<BlueprintAbilityReference>();
+
+            var autoQuicken = new AutoMetamagic
+            {
+                Abilities = new List<BlueprintAbilityReference>{dispelMagicTarget, dispelMagicPoint},
+                Metamagic = Metamagic.Quicken,
+                m_AllowedAbilities = AutoMetamagic.AllowedType.Any
+            };
+
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Penance", Guids.Penance, n =>
+            {
+                n.SetName("Penance");
+                n.SetDescription("You become immune to critical strikes. However, you can no longer deal critical strikes yourself.");
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(prerequisites, bonusComp, autoQuicken);
+            });
+
+            return clemency;
         }
 
         private static BlueprintFeature CreateAsylum(BlueprintFeatureReference mystery)

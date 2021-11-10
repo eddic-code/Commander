@@ -39,7 +39,6 @@
         public const string SaintMysterySpells = "9376ccdc3150488ab7a92ba5c377bd4c";
         public const string SaintMystery = "37457aa3c5dc4791a544c66ea832c3b5";
         public const string AsylumDefensiveBuff = "c12c2461f6234060986046aa0c569593";
-        public const string AsylumReactiveEffectComp = "0392aff018214a19ba042aca0008f959";
         public const string SaintsTouchResource = "4f087da382e148d6a5e09e798ccabd54";
         public const string SaintsTouchAbility = "0c15d594bd19418f92e8a2804031b557";
         public const string SaintsTouchFeature = "90ce1d39fc1c45dd8b6d5e6cc026f344";
@@ -78,5 +77,6 @@
         public const string AsylumResource = "2f00c2b641604984bff5795bdbee464d";
         public const string AsylumHiddenBuff = "8e22f19ebc3945718446eb0b61b9d7d4";
         public const string AsylumToggleAbility = "5123d74ba4e34130856fae7676c6acf9";
+        public const string Penance = "0fb12daf0fa0453d9a2d95a94c4d8b80";
     }
 }
