@@ -46,11 +46,8 @@ namespace Commander.Components
             var buff = Owner.Buffs.GetBuff(DefensiveBuff);
             if (buff != null && buff.TimeLeft > TimeSpan.Zero) { return; }
 
-            Main.Log($"Health: {Owner.HPLeft}/{Owner.MaxHP} Threshold: {Owner.MaxHP * 0.5f}");
-
             if (Owner.HPLeft > Owner.MaxHP * 0.5f) { return; }
 
-            Context[AbilityRankType.StatBonus] = 2;
             Owner.AddBuff(DefensiveBuff, Context, TimeSpan.FromSeconds(12));
             Owner.Resources.Spend(Resource, 1);
         }

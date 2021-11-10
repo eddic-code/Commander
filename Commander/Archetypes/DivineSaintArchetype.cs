@@ -30,6 +30,7 @@ using Kingmaker.UnitLogic.Mechanics;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using Kingmaker.UnitLogic.Mechanics.Conditions;
+using Kingmaker.UnitLogic.Mechanics.Properties;
 using Kingmaker.Utility;
 using Kingmaker.Visual.Animation.Kingmaker.Actions;
 
@@ -159,22 +160,29 @@ namespace Commander.Archetypes
             });
 
             // Asylum Buff
+            var startFx = Resources.GetBlueprint<BlueprintBuff>("b6570b8cbb32eaf4ca8255d0ec3310b0").FxOnStart;
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.InvulnerableRagerDamageReduction).m_Icon;
+
+            var customUnitProperty = Helpers.CreateBlueprint<BlueprintUnitProperty>("AsylumProp", "77b854af82a6486494bb568e98915c7a", n =>
+            {
+                n.AddComponents(new AsylumPropertyGetter());
+            });
 
             var drComp = new AddDamageResistancePhysical
             {
                 Alignment = DamageAlignment.Good, 
                 Material = PhysicalDamageMaterial.Adamantite,
                 Reality = DamageRealityType.Ghost,
-                Value = new ContextValue{ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+                Value = new ContextValue{ValueType = ContextValueType.CasterCustomProperty, m_CustomProperty = customUnitProperty.ToReference<BlueprintUnitPropertyReference>()}
             };
 
             Helpers.CreateBlueprint<BlueprintBuff>("AsylumDefensiveBuff", Guids.AsylumDefensiveBuff, n =>
             {
-                n.SetName("AsylumDefensiveBuff");
+                n.SetName("Asylum");
                 n.SetDescription("Gain an amount of DR/- equal to your armor and shield bonus to AC (to a maximum equal to your oracle level) for two rounds.");
                 n.AddComponents(drComp);
                 n.m_Icon = icon;
+                n.FxOnStart = startFx;
             });
 
             // Toggle Ability
@@ -607,6 +615,7 @@ namespace Commander.Archetypes
         private static BlueprintFeature CreatePathOfSacrificeT1(BlueprintArchetypeReference divineSaintArchetypeRef)
         {
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
+            var areaFx = Resources.GetBlueprint<BlueprintAbilityAreaEffect>("2d6c2640974d6314fb5f9c1f6570950f").Fx;
 
             var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT1", Guids.PathOfSacrificeDebuffT1, n =>
             {
@@ -626,9 +635,11 @@ namespace Commander.Archetypes
             {
                 n.AffectEnemies = true;
                 n.AggroEnemies = false;
+                n.m_TargetType = BlueprintAbilityAreaEffect.TargetType.Enemy;
                 n.Shape = AreaEffectShape.Cylinder;
                 n.Size = new Feet(20);
                 n.AddComponents(debuffAreaEffect);
+                n.Fx = areaFx;
             });
 
             var areaComp = Helpers.Create<AddAreaEffect>(c =>
@@ -721,6 +732,7 @@ namespace Commander.Archetypes
         private static BlueprintFeature CreatePathOfSacrificeT3(BlueprintArchetypeReference divineSaintArchetypeRef)
         {
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
+            var areaFx = Resources.GetBlueprint<BlueprintAbilityAreaEffect>("2d6c2640974d6314fb5f9c1f6570950f").Fx;
 
             var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT3", Guids.PathOfSacrificeDebuffT3, n =>
             {
@@ -743,6 +755,7 @@ namespace Commander.Archetypes
                 n.Shape = AreaEffectShape.Cylinder;
                 n.Size = new Feet(20);
                 n.AddComponents(debuffAreaEffect);
+                n.Fx = areaFx;
             });
 
             var areaComp = Helpers.Create<AddAreaEffect>(c =>
@@ -815,6 +828,7 @@ namespace Commander.Archetypes
         private static BlueprintFeature CreatePathOfSacrificeT4(BlueprintArchetypeReference divineSaintArchetypeRef)
         {
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
+            var areaFx = Resources.GetBlueprint<BlueprintAbilityAreaEffect>("2d6c2640974d6314fb5f9c1f6570950f").Fx;
 
             var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT4", Guids.PathOfSacrificeDebuffT4, n =>
             {
@@ -837,6 +851,7 @@ namespace Commander.Archetypes
                 n.Shape = AreaEffectShape.Cylinder;
                 n.Size = new Feet(20);
                 n.AddComponents(debuffAreaEffect);
+                n.Fx = areaFx;
             });
 
             var areaComp = Helpers.Create<AddAreaEffect>(c =>
@@ -916,6 +931,7 @@ namespace Commander.Archetypes
         private static BlueprintFeature CreatePathOfSacrificeT5()
         {
             var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.AuraOfRighteousness).m_Icon;
+            var areaFx = Resources.GetBlueprint<BlueprintAbilityAreaEffect>("2d6c2640974d6314fb5f9c1f6570950f").Fx;
 
             var debuff = Helpers.CreateBuff("PathOfSacrificeDebuffT5", Guids.PathOfSacrificeDebuffT5, n =>
             {
@@ -938,6 +954,7 @@ namespace Commander.Archetypes
                 n.Shape = AreaEffectShape.Cylinder;
                 n.Size = new Feet(20);
                 n.AddComponents(debuffAreaEffect);
+                n.Fx = areaFx;
             });
 
             var areaComp = Helpers.Create<AddAreaEffect>(c =>

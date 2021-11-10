@@ -111,6 +111,7 @@
   <ItemGroup>
     <Compile Include="Archetypes\DivineSaintArchetype.cs" />
     <Compile Include="Components\AsylumBuffComp.cs" />
+    <Compile Include="Components\AsylumPropertyGetter.cs" />
     <Compile Include="Components\AtonementBuffComp.cs" />
     <Compile Include="Components\AtonementComp.cs" />
     <Compile Include="Guids.cs" />
