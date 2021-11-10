@@ -17,6 +17,7 @@
 
         // Features
         public const string KiDiamondSoulFeature = "01182bcee8cb41640b7fa1b1ad772421";
+        public const string InvulnerableRagerDamageReduction = "e71bd204a2579b1438ebdfbf75aeefae";
         public const string AnimalCompanionFeatureLeopard = "2ee2ba60850dd064e8b98bf5c2c946ba";
         public const string BoundlessHealing = "c8bbb330aaecaf54dbc7570200653f8c";
         public const string AuraOfRighteousness = "6bd4a71232014254e80726f3a3756962";
@@ -73,5 +74,9 @@
         public const string Clemency = "0adfc87c10e4412d96b8b5218382980b";
         public const string Atonement = "39de105fd4b94177858c5ef14936fa70";
         public const string AtonementBuff = "bad572c7b0564f51b615f427dd27a671";
+        public const string Asylum = "7a81bb295ad24792a65e16df2e4ffc56";
+        public const string AsylumResource = "2f00c2b641604984bff5795bdbee464d";
+        public const string AsylumHiddenBuff = "8e22f19ebc3945718446eb0b61b9d7d4";
+        public const string AsylumToggleAbility = "5123d74ba4e34130856fae7676c6acf9";
     }
 }

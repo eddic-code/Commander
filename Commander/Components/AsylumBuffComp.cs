@@ -1,19 +1,18 @@
 ﻿using System;
 using Kingmaker.Blueprints;
-using Kingmaker.Blueprints.Facts;
-using Kingmaker.Blueprints.JsonSystem;
+using Kingmaker.Enums;
 using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.UnitLogic.Buffs.Components;
 
 namespace Commander.Components
 {
-    [AllowedOn(typeof(BlueprintUnitFact))]
-    [TypeId(Guids.AsylumReactiveEffectComp)]
-    public class AsylumReactiveEffectComp : UnitFactComponentDelegate, ITargetRulebookHandler<RuleDealDamage>
+    public class AsylumBuffComp : UnitBuffComponentDelegate, ITargetRulebookHandler<RuleDealDamage>
     {
         private static BlueprintBuff _defensiveBuff;
+        private static BlueprintAbilityResource _resource;
 
         private static BlueprintBuff DefensiveBuff
         {
@@ -22,6 +21,16 @@ namespace Commander.Components
                 return _defensiveBuff ??=
                     ResourcesLibrary.TryGetBlueprint(new BlueprintGuid(Guid.Parse(Guids.AsylumDefensiveBuff))) as
                         BlueprintBuff;
+            }
+        }
+
+        private static BlueprintAbilityResource Resource
+        {
+            get
+            {
+                return _resource ??=
+                    ResourcesLibrary.TryGetBlueprint(new BlueprintGuid(Guid.Parse(Guids.AsylumResource))) as
+                        BlueprintAbilityResource;
             }
         }
 
@@ -37,9 +46,13 @@ namespace Commander.Components
             var buff = Owner.Buffs.GetBuff(DefensiveBuff);
             if (buff != null && buff.TimeLeft > TimeSpan.Zero) { return; }
 
+            Main.Log($"Health: {Owner.HPLeft}/{Owner.MaxHP} Threshold: {Owner.MaxHP * 0.5f}");
+
             if (Owner.HPLeft > Owner.MaxHP * 0.5f) { return; }
 
-            Owner.AddBuff(DefensiveBuff, Context);
+            Context[AbilityRankType.StatBonus] = 2;
+            Owner.AddBuff(DefensiveBuff, Context, TimeSpan.FromSeconds(12));
+            Owner.Resources.Spend(Resource, 1);
         }
     }
 }

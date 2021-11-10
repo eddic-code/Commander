@@ -11,8 +11,10 @@ using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
+using Kingmaker.Enums.Damage;
 using Kingmaker.Localization;
 using Kingmaker.RuleSystem;
+using Kingmaker.UI.UnitSettings.Blueprints;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
@@ -59,6 +61,7 @@ namespace Commander.Archetypes
             CreateRevelations(saintMysteryRef);
             AddToSelection(revelationSelection, CreateClemency(saintMysteryRef));
             AddToSelection(revelationSelection, CreateAtonement(saintMysteryRef));
+            AddToSelection(revelationSelection, CreateAsylum(saintMysteryRef));
 
             // Archetype creation.
             var archetype = Helpers.CreateBlueprint<BlueprintArchetype>("DivineSaintArchetype", Guids.DivineSaintArchetype, a =>
@@ -114,6 +117,103 @@ namespace Commander.Archetypes
 
             var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT2, pathOfSacrificeT3, pathOfSacrificeT4, pathOfSacrificeT5);
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
+        }
+
+        private static BlueprintFeature CreateAsylum(BlueprintFeatureReference mystery)
+        {
+            // Hidden Trigger Buff
+            var comp = new AsylumBuffComp();
+
+            var hiddenBuff = Helpers.CreateBlueprint<BlueprintBuff>("AsylumHiddenBuff", Guids.AsylumHiddenBuff, n =>
+            {
+                n.SetName("AsylumHiddenBuff");
+                n.SetDescription("");
+                n.m_Flags = BlueprintBuff.Flags.StayOnDeath | BlueprintBuff.Flags.HiddenInUi;
+                n.AddComponents(comp);
+            });
+
+            // Resource
+            var resource = Helpers.CreateBlueprint<BlueprintAbilityResource>("AsylumResource", Guids.AsylumResource, n =>
+            {
+                n.m_MaxAmount = new BlueprintAbilityResource.Amount
+                {
+                    IncreasedByStat = false,
+                    BaseValue = 3
+                };
+
+                n.m_Max = 3;
+                n.LocalizedName = new LocalizedString();
+                n.LocalizedDescription = new LocalizedString();
+            });
+
+            var resourceLogic = new ActivatableAbilityResourceLogic
+            {
+                SpendType = ActivatableAbilityResourceLogic.ResourceSpendType.Never,
+                m_RequiredResource = resource.ToReference<BlueprintAbilityResourceReference>(),
+            };
+
+            var resouceComp = Helpers.Create<AddAbilityResources>(n =>
+            {
+                n.m_Resource = resource.ToReference<BlueprintAbilityResourceReference>();
+                n.RestoreAmount = true;
+            });
+
+            // Asylum Buff
+            var icon = Resources.GetBlueprint<BlueprintFeature>(Guids.InvulnerableRagerDamageReduction).m_Icon;
+
+            var drComp = new AddDamageResistancePhysical
+            {
+                Alignment = DamageAlignment.Good, 
+                Material = PhysicalDamageMaterial.Adamantite,
+                Reality = DamageRealityType.Ghost,
+                Value = new ContextValue{ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+            };
+
+            Helpers.CreateBlueprint<BlueprintBuff>("AsylumDefensiveBuff", Guids.AsylumDefensiveBuff, n =>
+            {
+                n.SetName("AsylumDefensiveBuff");
+                n.SetDescription("Gain an amount of DR/- equal to your armor and shield bonus to AC (to a maximum equal to your oracle level) for two rounds.");
+                n.AddComponents(drComp);
+                n.m_Icon = icon;
+            });
+
+            // Toggle Ability
+            const string desc = "Whenever you receive damage and your health drops below 50%, you gain an amount of DR/- equal to your armor and shield bonus to AC (to a maximum equal to your oracle level) for two rounds. This ability can trigger three times per day.";
+
+            var ability = Helpers.CreateBlueprint<BlueprintActivatableAbility>("AsylumToggleAbility", Guids.AsylumToggleAbility, n =>
+            {
+                n.SetName("Asylum");
+                n.SetDescription(desc);
+                n.DeactivateIfCombatEnded = false;
+                n.DeactivateIfOwnerDisabled = false;
+                n.DeactivateIfOwnerUnconscious = false;
+                n.DeactivateImmediately = true;
+                n.ActivationType = AbilityActivationType.WithUnitCommand;
+                n.m_ActivateWithUnitCommand = UnitCommand.CommandType.Swift;
+                n.m_Icon = icon;
+                n.m_Buff = hiddenBuff.ToReference<BlueprintBuffReference>();
+                n.AddComponents(resourceLogic);
+            });
+
+            // Ability Feature
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            var abilityComp = Helpers.Create<AddFacts>(c => c.m_Facts = new[]{ability.ToReference<BlueprintUnitFactReference>()});
+
+            var abilityFeature = Helpers.CreateBlueprint<BlueprintFeature>("Asylum", Guids.Asylum, n =>
+            {
+                n.SetName("Asylum");
+                n.SetDescription(desc);
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(abilityComp, prerequisites, resouceComp);
+            });
+
+            return abilityFeature;
         }
 
         private static BlueprintFeature CreateClemency(BlueprintFeatureReference mystery)
