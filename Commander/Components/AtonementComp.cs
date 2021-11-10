@@ -34,7 +34,7 @@ namespace Commander.Components
 
         public void OnEventDidTrigger(RuleHealDamage evt)
         {
-            var value = Math.Max(1, (int) (evt.ValueWithoutReduction * 0.2));
+            var value = Math.Max(1, (int) (evt.ValueWithoutReduction * 0.25));
             var timeSpan = TimeSpan.FromSeconds(6 * 3);
             var abilityParams = new AbilityParams {RankBonus = value};
 
