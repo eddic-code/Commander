@@ -54,5 +54,10 @@ namespace Commander
             Log(message);
             return new InvalidOperationException(message);
         }
+
+        public static void OnUpdate(UnityModManager.ModEntry modEntry, float z)
+        {
+            GameSpeedTweaks.OnUpdate();
+        }
     }
 }

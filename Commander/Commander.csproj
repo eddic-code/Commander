@@ -114,6 +114,7 @@
     <Compile Include="Components\AsylumPropertyGetter.cs" />
     <Compile Include="Components\AtonementBuffComp.cs" />
     <Compile Include="Components\AtonementComp.cs" />
+    <Compile Include="GameSpeedTweaks.cs" />
     <Compile Include="Guids.cs" />
     <Compile Include="Components\AddMutualImmunityToCriticalHits.cs" />
     <Compile Include="Components\IgnoreArmorPenaltiesComp.cs" />
