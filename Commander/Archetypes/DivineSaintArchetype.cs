@@ -306,8 +306,9 @@ namespace Commander.Archetypes
             {
                 n.SetName("Atonement");
                 n.SetDescription("Fast healing for 20% of Saint's Touch value.");
-                n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
+                n.m_Flags = BlueprintBuff.Flags.RemoveOnRest | BlueprintBuff.Flags.IsFromSpell;
                 n.m_Icon = icon;
+                n.Stacking = StackingType.Ignore;
                 n.AddComponents(new AtonementBuffComp());
             });
 

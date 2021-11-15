@@ -27,6 +27,8 @@ namespace Commander.Components
             }
         }
 
+        private static readonly BlueprintGuid SaintsTouchGuid = new(Guid.Parse(Guids.SaintsTouchAbility));
+
         public void OnEventAboutToTrigger(RuleHealDamage evt)
         {
             
@@ -34,6 +36,8 @@ namespace Commander.Components
 
         public void OnEventDidTrigger(RuleHealDamage evt)
         {
+            if (evt.Reason.Ability?.Blueprint.AssetGuid != SaintsTouchGuid) { return; }
+
             var value = Math.Max(1, (int) (evt.ValueWithoutReduction * 0.25));
             var timeSpan = TimeSpan.FromSeconds(6 * 3);
             var abilityParams = new AbilityParams {RankBonus = value};
