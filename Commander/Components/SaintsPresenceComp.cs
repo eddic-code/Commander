@@ -1,4 +1,6 @@
-﻿using Kingmaker.Blueprints;
+﻿using System;
+using Kingmaker.Blueprints;
+using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Blueprints.JsonSystem;
 using Kingmaker.Enums;
@@ -13,6 +15,18 @@ namespace Commander.Components
     [TypeId("8e6139b1f51d4768bf50468bc2bf23e3")]
     public class SaintsPresenceComp : UnitFactComponentDelegate, IUnitActiveEquipmentSetHandler, IUnitEquipmentHandler
     {
+        private static BlueprintCharacterClass _oracleClass;
+
+        private static BlueprintCharacterClass OracleClass
+        {
+            get
+            {
+                return _oracleClass ??=
+                    ResourcesLibrary.TryGetBlueprint(new BlueprintGuid(Guid.Parse(Guids.Oracle))) as
+                        BlueprintCharacterClass;
+            }
+        }
+
         public void HandleEquipmentSlotUpdated(ItemSlot slot, ItemEntity previousItem)
         {
             if (slot.Owner == Owner) { CheckConditions(); }
@@ -59,7 +73,9 @@ namespace Commander.Components
 
         private void ActivateModifier()
         {
-            var value = Owner.Stats.Charisma.Bonus;
+            var level = Owner.Descriptor.Progression.GetClassLevel(OracleClass) / 2;
+
+            var value = Math.Min(Owner.Stats.Charisma.Bonus, level);
             Owner.Stats.AC.AddModifierUnique(value, Runtime, ModifierDescriptor.UntypedStackable);
         }
 

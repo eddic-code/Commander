@@ -43,8 +43,6 @@ namespace Commander.Components
             var abilityParams = new AbilityParams {RankBonus = value};
 
             evt.Target.AddBuff(AtonementBuff, evt.Initiator, timeSpan, abilityParams);
-
-            Main.Log($"Fast healing {value}.");
         }
     }
 }

@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Archetypes\DivineSaintArchetype.cs" />
+    <Compile Include="Components\AegisComp.cs" />
     <Compile Include="Components\AsylumBuffComp.cs" />
     <Compile Include="Components\AsylumPropertyGetter.cs" />
     <Compile Include="Components\AtonementBuffComp.cs" />
