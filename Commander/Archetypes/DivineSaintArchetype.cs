@@ -16,7 +16,6 @@ using Kingmaker.Enums;
 using Kingmaker.Enums.Damage;
 using Kingmaker.Localization;
 using Kingmaker.RuleSystem;
-using Kingmaker.RuleSystem.Rules;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
@@ -41,10 +40,10 @@ namespace Commander.Archetypes
     internal static class DivineSaintArchetype
     {
         private const string PathOfSacrificeT1Desc = "Enemies within 20 feet of you are compelled to attack you instead of your allies. " +
-                                                     "You receive a -3 penalty to weapon attack rolls and can no longer fight defensively." +
-                                                     "\nAt 2nd level, you can add your charisma modifier as a bonus to AC while wearing medium or light armor." +
+                                                     "You receive a -4 penalty to weapon attack rolls and can no longer fight defensively. " +
+                                                     "You can add your charisma modifier as a bonus to AC while wearing medium or light armor." +
                                                      "\nAt 5th level, you become immune to attacks of opportunity." +
-                                                     "\nAt 9th level, you gain a +2 dodge bonus to AC." +
+                                                     "\nAt 9th level, you gain a +20 bonus to hit points." +
                                                      "\nAt 13th level, enemies affected by Path of Sacrifice now also become shaken.";
 
         public static void Create()
@@ -69,7 +68,9 @@ namespace Commander.Archetypes
             AddToSelection(revelationSelection, CreateAtonement(saintMysteryRef));
             AddToSelection(revelationSelection, CreateAsylum(saintMysteryRef));
             AddToSelection(revelationSelection, CreatePenance(saintMysteryRef));
+            AddToSelection(revelationSelection, CreateAbsolution(saintMysteryRef));
             AddToSelection(revelationSelection, CreateLuminositeEternelle(saintMysteryRef));
+            AddToSelection(revelationSelection, CreateAegis(saintMysteryRef));
 
             // Archetype creation.
             var archetype = Helpers.CreateBlueprint<BlueprintArchetype>("DivineSaintArchetype", Guids.DivineSaintArchetype, a =>
@@ -127,15 +128,53 @@ namespace Commander.Archetypes
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
         }
 
+        private static BlueprintFeature CreateAegis(BlueprintFeatureReference mystery)
+        {
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Aegis", Guids.Aegis, n =>
+            {
+                n.SetName("Aegis");
+                n.SetDescription("All damage received is reduced by 25%.");
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(prerequisites, new AegisComp());
+            });
+
+            return clemency;
+        }
+
+        private static BlueprintFeature CreateAbsolution(BlueprintFeatureReference mystery)
+        {
+            var absolutionComp = new AbsolutionComp();
+
+            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
+            {
+                n.m_Features = new[] {mystery};
+            });
+
+            var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Absolution", Guids.Absolution, n =>
+            {
+                n.SetName("Absolution");
+                n.SetDescription("Whenever you attack, even if you miss, you heal for 5% of your maximum hit points.");
+                n.IsClassFeature = true;
+                n.Ranks = 1;
+                n.Groups = new[] {FeatureGroup.OracleRevelation};
+                n.AddComponents(prerequisites, absolutionComp);
+            });
+
+            return clemency;
+        }
+
         private static BlueprintFeature CreatePenance(BlueprintFeatureReference mystery)
         {
-            var bonusComp = new ModifyD20
+            var bonus = new DispelCasterLevelCheckBonus
             {
-                m_SavingThrowType = ModifyD20.InnerSavingThrowType.All,
-                AddBonus = true,
-                Rule = RuleType.DispelMagic,
-                DispellMagicCheckType = RuleDispelMagic.CheckType.CasterLevel,
-                Bonus = new ContextValue{ValueType = ContextValueType.Simple, Value = 4}
+                Value = new ContextValue {ValueType = ContextValueType.Simple, Value = 4}
             };
 
             var dispelMagicTarget = Resources.GetBlueprint<BlueprintAbility>("143775c49ae6b7446b805d3b2e702298")
@@ -156,6 +195,20 @@ namespace Commander.Archetypes
                 n.m_Features = new[] {mystery};
             });
 
+            var icon = Resources.GetBlueprint<BlueprintAbility>("92681f181b507b34ea87018e8f7a528a").m_Icon;
+
+            var buff = Helpers.CreateBuff("PenanceBuff", Guids.PenanceBuff, n =>
+            {
+                n.SetName("Penance");
+                n.SetDescription("Gain a +4 bonus to Dispel Magic and Greater Dispel Magic checks. Dispel Magic can now be cast as a swift action.");
+                n.m_Flags = BlueprintBuff.Flags.StayOnDeath;
+                n.m_Icon = icon;
+                n.Stacking = StackingType.Ignore;
+                n.AddComponents(bonus);
+            });
+
+            var addFact = Helpers.Create<AddFacts>(c => c.m_Facts = new[]{buff.ToReference<BlueprintUnitFactReference>()});
+
             var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Penance", Guids.Penance, n =>
             {
                 n.SetName("Penance");
@@ -163,7 +216,7 @@ namespace Commander.Archetypes
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.Groups = new[] {FeatureGroup.OracleRevelation};
-                n.AddComponents(prerequisites, bonusComp, autoQuicken);
+                n.AddComponents(prerequisites, addFact, autoQuicken);
             });
 
             return clemency;
@@ -250,6 +303,7 @@ namespace Commander.Archetypes
                 n.m_Icon = icon;
                 n.m_Buff = hiddenBuff.ToReference<BlueprintBuffReference>();
                 n.AddComponents(resourceLogic);
+                n.IsOnByDefault = true;
             });
 
             // Ability Feature
@@ -894,7 +948,7 @@ namespace Commander.Archetypes
             var penaltyComp = Helpers.Create<WeaponMultipleCategoriesAttackBonus>(n =>
             {
                 n.Categories = new[] {WeaponCategory.Touch, WeaponCategory.Ray};
-                n.AttackBonus = -3;
+                n.AttackBonus = -4;
                 n.ExceptForCategories = true;
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
@@ -940,7 +994,7 @@ namespace Commander.Archetypes
             var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT1", Guids.PathOfSacrificeMainT1, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription("Enemies within 20 feet of you are compelled to attack you instead of your allies. You receive a -3 penalty to weapon attack rolls and can no longer fight defensively.");
+                n.SetDescription("Enemies within 20 feet of you are compelled to attack you instead of your allies. You receive a -4 penalty to weapon attack rolls and can no longer fight defensively.");
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
@@ -1010,7 +1064,7 @@ namespace Commander.Archetypes
             var penaltyComp = Helpers.Create<WeaponMultipleCategoriesAttackBonus>(n =>
             {
                 n.Categories = new[] {WeaponCategory.Touch, WeaponCategory.Ray};
-                n.AttackBonus = -3;
+                n.AttackBonus = -4;
                 n.ExceptForCategories = true;
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
@@ -1106,16 +1160,16 @@ namespace Commander.Archetypes
             var penaltyComp = Helpers.Create<WeaponMultipleCategoriesAttackBonus>(n =>
             {
                 n.Categories = new[] {WeaponCategory.Touch, WeaponCategory.Ray};
-                n.AttackBonus = -3;
+                n.AttackBonus = -4;
                 n.ExceptForCategories = true;
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 
             var dodgeBonusComp = Helpers.Create<AddStatBonus>(n =>
             {
-                n.Stat = StatType.AC;
-                n.Value = 2;
-                n.Descriptor = ModifierDescriptor.Dodge;
+                n.Stat = StatType.HitPoints;
+                n.Value = 20;
+                n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 
             var aooImmunityComp = Helpers.Create<AddCondition>(n =>
@@ -1164,7 +1218,7 @@ namespace Commander.Archetypes
             var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT4", Guids.PathOfSacrificeMainT4, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription("You gain a +2 dodge bonus to AC.");
+                n.SetDescription("You gain a +20 bonus to hit points.");
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
@@ -1209,16 +1263,16 @@ namespace Commander.Archetypes
             var penaltyComp = Helpers.Create<WeaponMultipleCategoriesAttackBonus>(n =>
             {
                 n.Categories = new[] {WeaponCategory.Touch, WeaponCategory.Ray};
-                n.AttackBonus = -3;
+                n.AttackBonus = -4;
                 n.ExceptForCategories = true;
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 
             var dodgeBonusComp = Helpers.Create<AddStatBonus>(n =>
             {
-                n.Stat = StatType.AC;
-                n.Value = 2;
-                n.Descriptor = ModifierDescriptor.Dodge;
+                n.Stat = StatType.HitPoints;
+                n.Value = 20;
+                n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 
             var aooImmunityComp = Helpers.Create<AddCondition>(n =>

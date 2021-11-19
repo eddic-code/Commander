@@ -78,6 +78,9 @@
         public const string AsylumHiddenBuff = "8e22f19ebc3945718446eb0b61b9d7d4";
         public const string AsylumToggleAbility = "5123d74ba4e34130856fae7676c6acf9";
         public const string Penance = "0fb12daf0fa0453d9a2d95a94c4d8b80";
+        public const string PenanceBuff = "bfa212fa183547b6955679220d684777";
+        public const string Absolution = "7a99f6076d4345afb5dc01baa55c4c58";
+        public const string Aegis = "6c5379cc28c64d41b6a0b163692c249f";
 
         public const string LuminositeEternelle = "5c941bed96344a95b413e57e1151b3ee";
         public const string LuminositeEternelleAbility = "9774e9385e684edfabe81b00e58f3fa8";

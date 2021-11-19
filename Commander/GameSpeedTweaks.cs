@@ -7,7 +7,7 @@ namespace Commander
     {
         private static bool _wasActive, _isOn;
 
-        public static void OnUpdate()
+        public static void OnGUI()
         {
             var isActive = Event.current.keyCode == KeyCode.F;
 

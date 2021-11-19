@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Archetypes\DivineSaintArchetype.cs" />
+    <Compile Include="Components\AbsolutionComp.cs" />
     <Compile Include="Components\AegisComp.cs" />
     <Compile Include="Components\AsylumBuffComp.cs" />
     <Compile Include="Components\AsylumPropertyGetter.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="BlueprintsCacheInitPatch.cs" />
     <Compile Include="ModSettings.cs" />
+    <Compile Include="MovementSpeedTweaks.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.cs" />
     <Compile Include="Utility\Accessors.cs" />

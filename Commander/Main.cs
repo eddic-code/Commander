@@ -16,6 +16,7 @@ namespace Commander
             Settings = UnityModManager.ModSettings.Load<ModSettings>(modEntry);
             ModSettings.ModEntry = modEntry;
             modEntry.OnToggle = OnToggle;
+            modEntry.OnUpdate = OnUpdate;
 
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll();
@@ -57,7 +58,7 @@ namespace Commander
 
         public static void OnUpdate(UnityModManager.ModEntry modEntry, float z)
         {
-            GameSpeedTweaks.OnUpdate();
+            GameSpeedTweaks.OnGUI();
         }
     }
 }

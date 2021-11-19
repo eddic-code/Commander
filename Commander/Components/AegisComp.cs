@@ -1,25 +1,30 @@
-﻿using Kingmaker.Blueprints.JsonSystem;
+﻿using Kingmaker.Blueprints;
+using Kingmaker.Blueprints.Facts;
+using Kingmaker.Blueprints.JsonSystem;
 using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
 
 namespace Commander.Components
 {
-    [TypeId("26102f6edd2245aab8a3db34ab74a7e5")]
-    public class AegisComp : UnitFactComponentDelegate, ITargetRulebookHandler<RuleDealDamage>
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    [TypeId("7811b745174944e592884da2c0aaea2e")]
+    public class AegisComp : UnitFactComponentDelegate, ITargetRulebookHandler<RuleCalculateDamage>
     {
-        public void OnEventAboutToTrigger(RuleDealDamage evt)
+        public void OnEventAboutToTrigger(RuleCalculateDamage evt)
         {
-            if (Owner.State.IsDead || Owner.HPLeft > Owner.MaxHP / 2) { return; }
-
-            Main.Log($"Aegis Damage: {evt.Result}");
-
-            evt.Result = evt.Result <= 1 ? evt.Result : evt.Result / 2;
+            foreach (var damage in evt.DamageBundle)
+            {
+                damage.BonusPercent += damage.BonusPercent - 25;
+            }
         }
 
-        public void OnEventDidTrigger(RuleDealDamage evt)
+        public void OnEventDidTrigger(RuleCalculateDamage evt)
         {
-
+            foreach (var damage in evt.CalculatedDamage)
+            {
+                Main.Log($"Damage: {damage.FinalValue} | Rolled: {damage.RolledValue} | Reduction: {damage.Reduction} | ValueWithoutReduction: {damage.ValueWithoutReduction} | Bonus %: {damage.Source.BonusPercent}");
+            }
         }
     }
 }
