@@ -24,15 +24,9 @@ namespace Commander.Components
 
         public override int GetBaseValue(UnitEntityData unit)
         {
-            var armor = unit.Stats.AC.m_ArmorAC;
-            var shield = unit.Stats.AC.m_ShieldAC;
-            //var level = unit.Descriptor.Progression.GetClassLevel(OracleClass);
+            var level = unit.Descriptor.Progression.GetClassLevel(OracleClass);
 
-            Main.Log($"Asylum Shield: {shield} | Armor: {armor}");
-
-            //return Math.Min(level, armor + shield);
-
-            return (armor + shield) / 2;
+            return level;
         }
     }
 }

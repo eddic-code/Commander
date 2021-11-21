@@ -21,10 +21,7 @@ namespace Commander.Components
 
         public void OnEventDidTrigger(RuleCalculateDamage evt)
         {
-            foreach (var damage in evt.CalculatedDamage)
-            {
-                Main.Log($"Damage: {damage.FinalValue} | Rolled: {damage.RolledValue} | Reduction: {damage.Reduction} | ValueWithoutReduction: {damage.ValueWithoutReduction} | Bonus %: {damage.Source.BonusPercent}");
-            }
+
         }
     }
 }

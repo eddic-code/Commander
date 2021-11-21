@@ -9,6 +9,8 @@ namespace Commander
 
         public static void OnGUI()
         {
+            if (Event.current == null) { return; }
+
             var isActive = Event.current.keyCode == KeyCode.F;
 
             if (isActive && !_wasActive)
@@ -35,11 +37,15 @@ namespace Commander
 
         private static void TurnOn()
         {
+            if (Game.Instance?.TimeController == null) { return; }
+
             Game.Instance.TimeController.DebugTimeScale = 0.5f;
         }
 
         private static void TurnOff()
         {
+            if (Game.Instance?.TimeController == null) { return; }
+
             Game.Instance.TimeController.DebugTimeScale = 1f;
         }
     }

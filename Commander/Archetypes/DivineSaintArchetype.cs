@@ -43,7 +43,7 @@ namespace Commander.Archetypes
                                                      "You receive a -4 penalty to weapon attack rolls and can no longer fight defensively. " +
                                                      "You can add your charisma modifier as a bonus to AC while wearing medium or light armor." +
                                                      "\nAt 5th level, you become immune to attacks of opportunity." +
-                                                     "\nAt 9th level, you gain a +20 bonus to hit points." +
+                                                     "\nAt 9th level, you gain a +10 bonus to hit points." +
                                                      "\nAt 13th level, enemies affected by Path of Sacrifice now also become shaken.";
 
         public static void Create()
@@ -150,6 +150,11 @@ namespace Commander.Archetypes
 
         private static BlueprintFeature CreateAbsolution(BlueprintFeatureReference mystery)
         {
+            Helpers.CreateBlueprint<BlueprintBuff>("AbsolutionCdBuff", Guids.AbsolutionCdBuff, n =>
+            {
+                n.m_Flags = BlueprintBuff.Flags.HiddenInUi;
+            });
+
             var absolutionComp = new AbsolutionComp();
 
             var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
@@ -160,7 +165,7 @@ namespace Commander.Archetypes
             var clemency = Helpers.CreateBlueprint<BlueprintFeature>("Absolution", Guids.Absolution, n =>
             {
                 n.SetName("Absolution");
-                n.SetDescription("Whenever you attack, even if you miss, you heal for 5% of your maximum hit points.");
+                n.SetDescription("When you attack, even if you miss, you heal for 5% of your maximum hit points. This can only happen once per round.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.Groups = new[] {FeatureGroup.OracleRevelation};
@@ -281,14 +286,14 @@ namespace Commander.Archetypes
             Helpers.CreateBlueprint<BlueprintBuff>("AsylumDefensiveBuff", Guids.AsylumDefensiveBuff, n =>
             {
                 n.SetName("Asylum");
-                n.SetDescription("Gain an amount of DR/- equal to your armor and shield bonus to AC (to a maximum equal to your oracle level) for two rounds.");
+                n.SetDescription("Gain an amount of DR/- equal to your oracle level for two rounds.");
                 n.AddComponents(drComp);
                 n.m_Icon = icon;
                 n.FxOnStart = startFx;
             });
 
             // Toggle Ability
-            const string desc = "Whenever you receive damage and your health drops below 50%, you gain an amount of DR/- equal to your armor and shield bonus to AC (to a maximum equal to your oracle level) for two rounds. This ability can trigger three times per day.";
+            const string desc = "Whenever you receive damage and your health drops below 50%, you gain an amount of DR/- equal to your oracle level for two rounds. This ability can trigger three times per day.";
 
             var ability = Helpers.CreateBlueprint<BlueprintActivatableAbility>("AsylumToggleAbility", Guids.AsylumToggleAbility, n =>
             {
@@ -391,8 +396,8 @@ namespace Commander.Archetypes
 
         private static BlueprintFeature CreateLuminositeEternelle(BlueprintFeatureReference mystery)
         {
-            const string desc = "You can create a luminous standard that protects a specified area as a full round action. All allies within the area receive a sacred bonus equal to your charisma modifier on all saving throws" +
-                                "and AC while they remain inside the area. This ability lasts for one hour per oracle level and can be used once per day.";
+            const string desc = "You can create a luminous standard that protects a specified area as a full round action. All allies within the area receive a sacred bonus equal to your charisma modifier on all saving throws " +
+                                "and DR/-. This ability lasts for one hour per oracle level and can be used once per day.";
 
             var guardedHearth = Resources.GetBlueprint<BlueprintAbility>("76291e62d2496ad41824044aba3077ea");
 
@@ -432,10 +437,11 @@ namespace Commander.Archetypes
                 Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
             };
 
-            var acComp = new AddStatBonusAbilityValue
+            var drComp = new AddDamageResistancePhysical
             {
-                Descriptor = ModifierDescriptor.Sacred,
-                Stat = StatType.AC,
+                Alignment = DamageAlignment.Good, 
+                Material = PhysicalDamageMaterial.Adamantite,
+                Reality = DamageRealityType.Ghost,
                 Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
             };
 
@@ -453,7 +459,7 @@ namespace Commander.Archetypes
                 n.SetDescription(desc);
                 n.IsClassFeature = true;
                 n.m_Icon = guardedHearth.m_Icon;
-                n.AddComponents(fortitudeComp, reflexComp, willComp, acComp, rankConfig);
+                n.AddComponents(fortitudeComp, reflexComp, willComp, rankConfig, drComp);
             });
 
             // Area
@@ -1168,7 +1174,7 @@ namespace Commander.Archetypes
             var dodgeBonusComp = Helpers.Create<AddStatBonus>(n =>
             {
                 n.Stat = StatType.HitPoints;
-                n.Value = 20;
+                n.Value = 10;
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 
@@ -1218,7 +1224,7 @@ namespace Commander.Archetypes
             var mainFeature = Helpers.CreateBlueprint<BlueprintFeature>("PathOfSacrificeMainT4", Guids.PathOfSacrificeMainT4, n =>
             {
                 n.SetName("Path of Sacrifice");
-                n.SetDescription("You gain a +20 bonus to hit points.");
+                n.SetDescription("You gain a +10 bonus to hit points.");
                 n.IsClassFeature = true;
                 n.m_Icon = icon;
                 n.Ranks = 1;
@@ -1271,7 +1277,7 @@ namespace Commander.Archetypes
             var dodgeBonusComp = Helpers.Create<AddStatBonus>(n =>
             {
                 n.Stat = StatType.HitPoints;
-                n.Value = 20;
+                n.Value = 10;
                 n.Descriptor = ModifierDescriptor.UntypedStackable;
             });
 

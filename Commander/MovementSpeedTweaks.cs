@@ -10,12 +10,12 @@ using UnityEngine;
 
 namespace Commander
 {
-    [HarmonyPatch(typeof(GlobalMapMovementController), "GetRegionalModifier", new Type[] { })]
+        [HarmonyPatch(typeof(GlobalMapMovementController), "GetRegionalModifier", new Type[] { })]
         public static class MovementSpeedGetRegionalModifierPatch1 
         {
             public static void Postfix(ref float __result) 
             {
-                var speedMultiplier = Mathf.Clamp(1.3f, 0.1f, 100f);
+                var speedMultiplier = Mathf.Clamp(1.5f, 0.1f, 100f);
                 __result = speedMultiplier * __result;
             }
         }
@@ -25,7 +25,7 @@ namespace Commander
         {
             public static void Postfix(ref float __result) 
             {
-                var speedMultiplier = Mathf.Clamp(1.3f, 0.1f, 100f);
+                var speedMultiplier = Mathf.Clamp(1.5f, 0.1f, 100f);
                 __result = speedMultiplier * __result;
             }
         }
@@ -37,7 +37,7 @@ namespace Commander
 
                 if (traveler is GlobalMapArmyState armyState && armyState.Data.Faction == ArmyFaction.Crusaders) 
                 {
-                    var speedMultiplier = Mathf.Clamp(1.3f, 0.1f, 100f);
+                    var speedMultiplier = Mathf.Clamp(1.5f, 0.1f, 100f);
                     visualStepDistance = speedMultiplier * visualStepDistance;
                 }
             }
@@ -50,7 +50,7 @@ namespace Commander
             {
                 if (__instance.Data.Faction != ArmyFaction.Crusaders) { return; }
 
-                var speedMultiplier = Mathf.Clamp(1.3f, 0.1f, 100f);
+                var speedMultiplier = Mathf.Clamp(1.5f, 0.1f, 100f);
                 points /= speedMultiplier;
             }
         }

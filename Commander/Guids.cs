@@ -80,6 +80,7 @@
         public const string Penance = "0fb12daf0fa0453d9a2d95a94c4d8b80";
         public const string PenanceBuff = "bfa212fa183547b6955679220d684777";
         public const string Absolution = "7a99f6076d4345afb5dc01baa55c4c58";
+        public const string AbsolutionCdBuff = "32602514060a4455aa2cdb67b7a23f04";
         public const string Aegis = "6c5379cc28c64d41b6a0b163692c249f";
 
         public const string LuminositeEternelle = "5c941bed96344a95b413e57e1151b3ee";
