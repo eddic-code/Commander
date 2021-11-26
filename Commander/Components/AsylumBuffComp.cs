@@ -51,7 +51,7 @@ namespace Commander.Components
             if (Owner.HPLeft > Owner.MaxHP * 0.5f) { return; }
             if (!Owner.Resources.HasEnoughResource(Resource, 1)) { return; }
 
-            Owner.AddBuff(DefensiveBuff, Context, TimeSpan.FromSeconds(12));
+            Owner.AddBuff(DefensiveBuff, Context, TimeSpan.FromSeconds(6));
             Owner.Resources.Spend(Resource, 1);
         }
     }

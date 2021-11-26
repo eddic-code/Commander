@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.Blueprints.JsonSystem;
@@ -36,9 +38,16 @@ namespace Commander.Components
             var buff = Owner.Buffs.GetBuff(CdBuff);
             if (buff != null && buff.TimeLeft > TimeSpan.Zero) { return; }
 
-            var value = Math.Max(1, (int)(Owner.MaxHP * 0.05f));
+            var value = Math.Max(1, (int)(Owner.MaxHP * 0.08f));
 
-            GameHelper.HealDamage(Owner, Owner, value);
+            var target = Game.Instance.Player.PartyAndPets
+                .Where(n => n.HPLeft < n.MaxHP)
+                .OrderBy(n => n.HPLeft)
+                .FirstOrDefault();
+
+            if (target == null) { return; }
+
+            GameHelper.HealDamage(Owner, target, value);
 
             Owner.AddBuff(CdBuff, Context, TimeSpan.FromSeconds(6));
         }

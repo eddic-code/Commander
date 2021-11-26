@@ -69,7 +69,6 @@ namespace Commander.Archetypes
             AddToSelection(revelationSelection, CreateAsylum(saintMysteryRef));
             AddToSelection(revelationSelection, CreatePenance(saintMysteryRef));
             AddToSelection(revelationSelection, CreateAbsolution(saintMysteryRef));
-            AddToSelection(revelationSelection, CreateLuminositeEternelle(saintMysteryRef));
             AddToSelection(revelationSelection, CreateAegis(saintMysteryRef));
 
             // Archetype creation.
@@ -81,10 +80,10 @@ namespace Commander.Archetypes
 
             var archetypeRef = archetype.ToReference<BlueprintArchetypeReference>();
             var pathOfSacrificeT1 = CreatePathOfSacrificeT1(archetypeRef);
-            var pathOfSacrificeT2 = CreatePathOfSacrificeT2();
             var pathOfSacrificeT3 = CreatePathOfSacrificeT3(archetypeRef);
             var pathOfSacrificeT4 = CreatePathOfSacrificeT4(archetypeRef);
             var pathOfSacrificeT5 = CreatePathOfSacrificeT5();
+            var luminosite = CreateLuminositeEternelle();
 
             var levelEntry1 = new LevelEntry
             {
@@ -95,7 +94,7 @@ namespace Commander.Archetypes
             var levelEntry2 = new LevelEntry
             {
                 Level = 2,
-                Features = {pathOfSacrificeT2, CreateRelicArmor(), saintsTouch}
+                Features = {luminosite, CreateRelicArmor(), saintsTouch}
             };
 
             var levelEntry5 = new LevelEntry
@@ -118,13 +117,13 @@ namespace Commander.Archetypes
 
             archetype.ReplaceClassSkills = true;
             archetype.AddSkillPoints = 1;
-            archetype.ClassSkills = new[] {StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice};
+            archetype.ClassSkills = new[] {StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillUseMagicDevice, StatType.SkillLoreNature};
             archetype.AddFeatures = new[] {levelEntry1, levelEntry2, levelEntry5, levelEntry9, levelEntry13};
             archetype.RemoveFeatures = new[] {Helpers.LevelEntry(1, mysterySelection), Helpers.LevelEntry(1, oracleCurseSelection), Helpers.LevelEntry(1, oracleAdditionalSpellsSelection)};
 
             oracle.m_Archetypes = oracle.m_Archetypes.AddToArray(archetype.ToReference<BlueprintArchetypeReference>()).ToArray();
 
-            var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT2, pathOfSacrificeT3, pathOfSacrificeT4, pathOfSacrificeT5);
+            var pathOfSacrificeGroup = Helpers.CreateUIGroup(pathOfSacrificeT1, pathOfSacrificeT3, pathOfSacrificeT4, pathOfSacrificeT5);
             oracle.Progression.UIGroups = oracle.Progression.UIGroups.AppendToArray(pathOfSacrificeGroup);
         }
 
@@ -286,14 +285,14 @@ namespace Commander.Archetypes
             Helpers.CreateBlueprint<BlueprintBuff>("AsylumDefensiveBuff", Guids.AsylumDefensiveBuff, n =>
             {
                 n.SetName("Asylum");
-                n.SetDescription("Gain an amount of DR/- equal to your oracle level for two rounds.");
+                n.SetDescription("Gain an amount of DR/- equal to your oracle level for one round.");
                 n.AddComponents(drComp);
                 n.m_Icon = icon;
                 n.FxOnStart = startFx;
             });
 
             // Toggle Ability
-            const string desc = "Whenever you receive damage and your health drops below 50%, you gain an amount of DR/- equal to your oracle level for two rounds. This ability can trigger three times per day.";
+            const string desc = "Whenever you receive damage and your health drops below 50%, you gain an amount of DR/- equal to your oracle level for one round. This ability can trigger three times per day.";
 
             var ability = Helpers.CreateBlueprint<BlueprintActivatableAbility>("AsylumToggleAbility", Guids.AsylumToggleAbility, n =>
             {
@@ -394,12 +393,15 @@ namespace Commander.Archetypes
             });
         }
 
-        private static BlueprintFeature CreateLuminositeEternelle(BlueprintFeatureReference mystery)
+        private static BlueprintFeature CreateLuminositeEternelle()
         {
             const string desc = "You can create a luminous standard that protects a specified area as a full round action. All allies within the area receive a sacred bonus equal to your charisma modifier on all saving throws " +
-                                "and DR/-. This ability lasts for one hour per oracle level and can be used once per day.";
+                                "and a sacred bonus to AC equal to half your oracle level. This ability lasts for one hour per oracle level and can be used twice per day.";
 
             var guardedHearth = Resources.GetBlueprint<BlueprintAbility>("76291e62d2496ad41824044aba3077ea");
+
+            var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle)
+                .ToReference<BlueprintCharacterClassReference>();
 
             // Resource
             var resource = Helpers.CreateBlueprint<BlueprintAbilityResource>("LuminositeEternelleResource", Guids.LuminositeEternelleResource, n =>
@@ -407,10 +409,10 @@ namespace Commander.Archetypes
                 n.m_MaxAmount = new BlueprintAbilityResource.Amount
                 {
                     IncreasedByStat = false,
-                    BaseValue = 1
+                    BaseValue = 2
                 };
 
-                n.m_Max = 1;
+                n.m_Max = 2;
                 n.LocalizedName = new LocalizedString();
                 n.LocalizedDescription = new LocalizedString();
             });
@@ -437,12 +439,11 @@ namespace Commander.Archetypes
                 Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
             };
 
-            var drComp = new AddDamageResistancePhysical
+            var acComp = new AddStatBonusAbilityValue
             {
-                Alignment = DamageAlignment.Good, 
-                Material = PhysicalDamageMaterial.Adamantite,
-                Reality = DamageRealityType.Ghost,
-                Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.StatBonus}
+                Descriptor = ModifierDescriptor.Sacred,
+                Stat = StatType.AC,
+                Value = new ContextValue {ValueType = ContextValueType.Rank, ValueRank = AbilityRankType.Default}
             };
 
             var rankConfig = new ContextRankConfig
@@ -453,13 +454,22 @@ namespace Commander.Archetypes
                 m_Max = 20
             };
 
+            var rankConfig2 = new ContextRankConfig
+            {
+                m_Type = AbilityRankType.Default,
+                m_BaseValueType = ContextRankBaseValueType.ClassLevel,
+                m_Class = new[] {oracle},
+                m_Progression = ContextRankProgression.Div2,
+                m_Max = 20
+            };
+
             var buff = Helpers.CreateBuff("LuminositeEternelleBuff", Guids.LuminositeEternelleBuff, n =>
             {
                 n.SetName("Luminosite Eternelle");
                 n.SetDescription(desc);
                 n.IsClassFeature = true;
                 n.m_Icon = guardedHearth.m_Icon;
-                n.AddComponents(fortitudeComp, reflexComp, willComp, rankConfig, drComp);
+                n.AddComponents(fortitudeComp, reflexComp, willComp, rankConfig, acComp, rankConfig2);
             });
 
             // Area
@@ -516,9 +526,6 @@ namespace Commander.Archetypes
                 m_RequiredResource = resource.ToReference<BlueprintAbilityResourceReference>(),
             };
 
-            var oracle = Resources.GetBlueprint<BlueprintCharacterClass>(Guids.Oracle)
-                .ToReference<BlueprintCharacterClassReference>();
-
             var contextRankConfig = new ContextRankConfig
             {
                 m_Type = AbilityRankType.Default,
@@ -550,17 +557,6 @@ namespace Commander.Archetypes
             });
 
             // Ability Feature
-            var classPrerequisite = new PrerequisiteClassLevel
-            {
-                m_CharacterClass = oracle,
-                Level = 11
-            };
-
-            var prerequisites = Helpers.Create<PrerequisiteFeaturesFromList>(n =>
-            {
-                n.m_Features = new[] {mystery};
-            });
-
             var abilityComp = Helpers.Create<AddFacts>(c => c.m_Facts = new[]{ability.ToReference<BlueprintUnitFactReference>()});
 
             var resouceComp = Helpers.Create<AddAbilityResources>(n =>
@@ -576,7 +572,7 @@ namespace Commander.Archetypes
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.Groups = new[] {FeatureGroup.OracleRevelation};
-                n.AddComponents(abilityComp, prerequisites, classPrerequisite, resouceComp);
+                n.AddComponents(abilityComp, resouceComp);
             });
 
             return abilityFeature;
@@ -592,7 +588,7 @@ namespace Commander.Archetypes
             var relicArmor = Helpers.CreateBlueprint<BlueprintFeature>("RelicArmor", Guids.RelicArmor, n =>
             {
                 n.SetName("Relic Armor");
-                n.SetDescription("Your maximum dexterity bonus to AC permitted by your armor is increased by an amount equal to half your oracle level. Ignore all penalties to skill checks and speed imposed by medium armor, light armor, heavy shields, light shields, and bucklers.");
+                n.SetDescription("Your maximum dexterity bonus to AC permitted by your armor is increased by an amount equal to your oracle level. Ignore all penalties to skill checks and speed imposed by medium armor, light armor, heavy shields, light shields, and bucklers.");
                 n.IsClassFeature = true;
                 n.Ranks = 1;
                 n.ReapplyOnLevelUp = true;

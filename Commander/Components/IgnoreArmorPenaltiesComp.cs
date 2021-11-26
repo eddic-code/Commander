@@ -60,7 +60,7 @@ namespace Commander.Components
 
         public void OnEventDidTrigger(RuleCalculateArmorMaxDexBonusLimit evt)
         {
-            var level = Owner.Descriptor.Progression.GetClassLevel(OracleClass) / 2;
+            var level = Owner.Descriptor.Progression.GetClassLevel(OracleClass);
 
             if (Categories.Contains(evt.Armor.ArmorType())) 
             {
