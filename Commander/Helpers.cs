@@ -109,14 +109,14 @@ namespace Commander {
             if (textToLocalizedString.TryGetValue(value, out localized)) {
                 return localized;
             }
-            var strings = LocalizationManager.CurrentPack.Strings;
+            var strings = LocalizationManager.CurrentPack.ToString();
             String oldValue;
-            if (strings.TryGetValue(key, out oldValue) && value != oldValue) {
+            //if (strings.TryGetValue(key, out oldValue) && value != oldValue) {
 #if DEBUG
                 Main.LogDebug($"Info: duplicate localized string `{key}`, different text.");
 #endif
-            }
-            strings[key] = value;
+            //}
+            //strings[key] = value;
             localized = new LocalizedString {
                 m_Key = key
             };

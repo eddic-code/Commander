@@ -17,7 +17,7 @@ namespace Commander.Components
 
             if (!Owner.State.IsDead && Owner.Damage > 0)
             {
-                GameHelper.HealDamage(Owner, Owner, value);
+                GameHelper.HealDamage(Owner, Owner, value, null);
             }
         }
     }
