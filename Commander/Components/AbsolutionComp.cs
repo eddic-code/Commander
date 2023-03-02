@@ -47,7 +47,7 @@ namespace Commander.Components
 
             if (target == null) { return; }
 
-            GameHelper.HealDamage(Owner, target, value);
+            GameHelper.HealDamage(Owner, target, value, null);
 
             Owner.AddBuff(CdBuff, Context, TimeSpan.FromSeconds(6));
         }

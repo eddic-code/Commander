@@ -2,7 +2,7 @@
   "Id": "Commander",
   "DisplayName": "Commander",
   "Author": "Saga",
-  "Version": "1.0.0",
+  "Version": "1.0.1",
   "ManagerVersion": "0.23.5.0",
   "Requirements": [],
   "AssemblyName": "Commander.dll",
