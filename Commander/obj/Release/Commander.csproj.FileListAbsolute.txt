@@ -1,0 +1,7 @@
+E:\GitHub\Commander\Commander\bin\Release\Info.json
+E:\GitHub\Commander\Commander\bin\Release\Commander.dll
+E:\GitHub\Commander\Commander\bin\Release\Commander.pdb
+E:\GitHub\Commander\Commander\obj\Release\Commander.csproj.AssemblyReference.cache
+E:\GitHub\Commander\Commander\obj\Release\Commander.csproj.CoreCompileInputs.cache
+E:\GitHub\Commander\Commander\obj\Release\Commander.dll
+E:\GitHub\Commander\Commander\obj\Release\Commander.pdb
